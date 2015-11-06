@@ -19,7 +19,9 @@ import base64
 
 db = None
 handlers = set()
-logged_users = []
+#logged_users = []
+user_handler = {}
+handler_user = {}
 
 #@gen.engine
 #def f():
@@ -96,8 +98,19 @@ class WSHandler(websocket.WebSocketHandler):
             #compare with hash from password 
             if(correctPasswordHash == stringKey):
                 print "Correct password"
-                logged_users.append(enteredLogin)
 
+                #Add user login to dict with together with handler
+                #logged_users.append(enteredLogin)
+                user_handler.update([(enteredLogin, self)])
+                handler_user.update([(self, enteredLogin)])
+                
+                print user_handler.items()
+                print user_handler.get("KOS")
+                
+                answer_message = {'request_id' : request_id, 'request_type' : request_type, 'bool_value' : True}
+                print "answer_message = ", answer_message
+                json_answer_message = json.dumps(answer_message)
+                self.write_message(json_answer_message)
                 #generate answer package with received request_id
                 #json_answer = json.dumps()
             else:
@@ -107,6 +120,19 @@ class WSHandler(websocket.WebSocketHandler):
 
         if(request_type == "LogOut"):
             print "LogOut"
+            
+            try:
+                user_name = handler_user.pop(self)
+                del user_handler[user_name]
+                print "User ", user_name, " was logged out"
+                answer_message = {'request_id' : request_id, 'request_type' : request_type, 'bool_value' : True}
+                print "answer_message = ", answer_message
+                json_answer_message = json.dumps(answer_message)
+                self.write_message(json_answer_message)
+            except KeyError:
+                pass
+            
+            
 
         if(request_type == "CheckComplete"):
 	    	db.execute("UPDATE `unitygame_electrolab`.`stand_state` SET `complete`='1' WHERE `id`='2';")
@@ -125,18 +151,18 @@ class WSHandler(websocket.WebSocketHandler):
 def GetConnection():
     return Connection('127.0.0.1', 'electrolab', user='django', password='31415926')
 
-#Function for background calling
-def do_something():
+#Function for background calling test
+def do_something(handler):
     print "background_task"
-    for handler in handlers:
-        handler.write_message('automatic message')
+    #for handler in handlers:
+    #    handler.write_message('automatic message')
     #self.write_message(json_answer) 
 
-#Background infinity cycle
+#Background infinity cycle test
 @gen.coroutine
 def minute_loop():
     while True:
-        do_something()
+        #do_something()
         yield gen.sleep(1)
 
 application = tornado.web.Application([
@@ -153,6 +179,6 @@ if __name__ == "__main__":
     print '*** Server Started at %s***' % myIP
     #auto_loop()
     #IOLoop.instance().add_callback(f)
-    IOLoop.current().spawn_callback(minute_loop)
-    IOLoop.instance().start()
+    IOLoop.current().spawn_callback(minute_loop) #Stat background loop
+    IOLoop.instance().start() #Start main loop
     #tornado.ioloop.IOLoop.instance().start()
