@@ -6,7 +6,6 @@ from tornado import websocket, web, ioloop
 from torndb import Connection
 
 import datetime
-import time
 from tornado.ioloop import IOLoop
 from tornado import gen
 
@@ -21,11 +20,16 @@ db = None
 handlers = set()
 logged_users = []
 
-#@gen.engine
-#def f():
-#    print 'sleeping'
-#    yield gen.Task(IOLoop.instance().add_timeout, time.time() + 1)
-#    print 'awake!'
+@gen.coroutine
+def auto_loop():
+    while True:
+        print "auto_loop"
+        for handler in handlers:
+            handler.write_message('automatic message')
+
+    yield gen.Task(
+        IOLoop.current().add_timeout,
+        datetime.timedelta(milliseconds=500))
 
 class IndexHandler(tornado.web.RequestHandler):
     def get(self):
@@ -75,35 +79,36 @@ class WSHandler(websocket.WebSocketHandler):
             db.close()    
             print "Password from database : %s " % dbPasswordStruct #Debug
             passwordList = dbPasswordStruct['password'].split('$')
-            print passwordList[0] #Debug
-            print passwordList[1] #Debug
-            print passwordList[2] #Debug
-            print passwordList[3] #Debug
+            print passwordList[0]
+            print passwordList[1]
+            print passwordList[2]
+            print passwordList[3]
 
-            #get salt from db password
             passwordSalt = passwordList[2]
-            
             correctPasswordHash = passwordList[3]
-            
-            #generate hash from entered password
+            ##key = PBKDF2(enteredPassword, passwordSalt).read(32)
+            #key = PBKDF2(enteredPassword, passwordSalt, dkLen=32, count=20000, prf=None)
+            #key = pbkdf2.encrypt(enteredPassword, salt = passwordSalt.encode('ascii'), rounds = 20000)
             key = hashlib.pbkdf2_hmac('sha256', enteredPassword.encode('ascii'), passwordSalt.encode('ascii'), 20000)
             
             #binascii.hexlify(dk)
             
             stringKey = base64.b64encode(key).decode('ascii').strip()
-            print stringKey #Debug
+            print stringKey
 
-            #compare with hash from password 
             if(correctPasswordHash == stringKey):
                 print "Correct password"
                 logged_users.append(enteredLogin)
-
-                #generate answer package with received request_id
-                #json_answer = json.dumps()
             else:
                 print "Incorrect password"
-            
-            #self.write_message(json_answer)   
+            #get salt from db password
+            #generate hash from entered password
+            #compare with hash from password 
+
+            #generate anwer package
+            ##json_answer = json.dumps()
+
+            #self.write_message()   
 
         if(request_type == "LogOut"):
             print "LogOut"
@@ -125,20 +130,6 @@ class WSHandler(websocket.WebSocketHandler):
 def GetConnection():
     return Connection('127.0.0.1', 'electrolab', user='django', password='31415926')
 
-#Function for background calling
-def do_something():
-    print "background_task"
-    for handler in handlers:
-        handler.write_message('automatic message')
-    #self.write_message(json_answer) 
-
-#Background infinity cycle
-@gen.coroutine
-def minute_loop():
-    while True:
-        do_something()
-        yield gen.sleep(1)
-
 application = tornado.web.Application([
     (r'/', IndexHandler),
     (r'/ws', WSHandler),
@@ -151,8 +142,5 @@ if __name__ == "__main__":
     http_server.listen(8888)
     myIP = socket.gethostbyname(socket.gethostname())
     print '*** Server Started at %s***' % myIP
-    #auto_loop()
-    #IOLoop.instance().add_callback(f)
-    IOLoop.current().spawn_callback(minute_loop)
-    IOLoop.instance().start()
-    #tornado.ioloop.IOLoop.instance().start()
+    auto_loop()
+    tornado.ioloop.IOLoop.instance().start()
