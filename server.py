@@ -41,6 +41,30 @@ class TrainingHandler(websocket.WebSocketHandler):
 
     def on_message(self, message):
 		print 'Received message from Training websocket connection'
+
+	    #Parse request json package
+        python_request = json.loads(message)
+
+        #print "python_request['login']: %s" % python_request['login']
+        #print "python_request['password']: %s"  % python_request['password']
+        #print "python_request['request_id']: %s" % python_request['request_id']
+        request_id = python_request[0]
+        request_type = python_request[1]
+        request_data = python_request[2]
+
+        print 'Received message:  %s' % python_request
+        
+		if(request_type == "Viss"):
+			print "Viss message" #Debug
+			#Send Visualizations id to all connected users in current training
+
+		if(request_type == "Params"):
+			print "Params message" #Debug
+			#Send Params id with values to all connected users in current training
+
+		if(request_type == "Event"):
+			print "Event message" #Debug
+			#Write event to database
     
     def on_close(self):
         print 'Training websocket connection was closed'
@@ -72,6 +96,7 @@ class StandtaskHandler(websocket.WebSocketHandler):
         print 'Received message:  %s' % python_request
         
 		if(request_type == "CheckConnection"):
+			print "CheckConnection message" #Debug
 			answer_message = {'request_id' : request_id, 'request_type' : request_type, 'bool_value' : True}
             print "Answer message = ", answer_message
             json_answer_message = json.dumps(answer_message)
