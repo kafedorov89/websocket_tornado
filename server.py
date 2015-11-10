@@ -20,8 +20,8 @@ import base64
 db = None
 handlers = set()
 #logged_users = []
-user_handler = {}
-handler_user = {}
+user_handlers = {}
+handler_users = {}
 
 #@gen.engine
 #def f():
@@ -33,21 +33,32 @@ class IndexHandler(tornado.web.RequestHandler):
     def get(self):
         self.render("index.html")
 	
-
-class WSHandler(websocket.WebSocketHandler):
+class TrainingHandler(websocket.WebSocketHandler):
     def open(self):
-        print 'new ws connection'
+        print 'Training websocket connection was opened'
         handlers.add(self)
         #handlers.append(self)
 
-    def check_activate(self):
-        print "check_activate"
-        #select from db information about activated standtask 
+    def on_message(self, message):
+		print 'Received message from Training websocket connection'
+    
+    def on_close(self):
+        print 'Training websocket connection was closed'
+        #handlers.append(self)
+        handlers.discard(self)
+ 
+    def check_origin(self, origin):
+        return True
 
-    def add_user(self, user_login):
-        print "add_user"
+
+class StandtaskHandler(websocket.WebSocketHandler):
+    def open(self):
+        print 'Standtask websocket connection was opened'
+        handlers.add(self)
+        #handlers.append(self)
 
     def on_message(self, message):
+    	print 'Received message from Standtask websocket connection'
 	    #Parse request json package
         python_request = json.loads(message)
 
@@ -58,10 +69,16 @@ class WSHandler(websocket.WebSocketHandler):
         request_type = python_request[1]
         request_data = python_request[2]
 
-        print 'ws message received:  %s' % python_request
+        print 'Received message:  %s' % python_request
         
+		if(request_type == "CheckConnection"):
+			answer_message = {'request_id' : request_id, 'request_type' : request_type, 'bool_value' : True}
+            print "Answer message = ", answer_message
+            json_answer_message = json.dumps(answer_message)
+            self.write_message(json_answer_message)
+
         if(request_type == "LogIn"):
-            print "LogIn" #Debug
+            print "LogIn message" #Debug
             
             loginClass = json.loads(request_data)
             print loginClass #Debug
@@ -101,11 +118,11 @@ class WSHandler(websocket.WebSocketHandler):
 
                 #Add user login to dict with together with handler
                 #logged_users.append(enteredLogin)
-                user_handler.update([(enteredLogin, self)])
-                handler_user.update([(self, enteredLogin)])
+                user_handlers.update([(enteredLogin, self)])
+                handler_users.update([(self, enteredLogin)])
                 
-                print user_handler.items()
-                print user_handler.get("KOS")
+                print user_handlers.items()
+                print user_handlers.get("KOS")
                 
                 answer_message = {'request_id' : request_id, 'request_type' : request_type, 'bool_value' : True}
                 print "answer_message = ", answer_message
@@ -119,29 +136,28 @@ class WSHandler(websocket.WebSocketHandler):
             #self.write_message(json_answer)   
 
         if(request_type == "LogOut"):
-            print "LogOut"
+            print "LogOut message"
             
             try:
-                user_name = handler_user.pop(self)
-                del user_handler[user_name]
+                user_name = handler_users.pop(self)
+                del user_handlers[user_name]
                 print "User ", user_name, " was logged out"
                 answer_message = {'request_id' : request_id, 'request_type' : request_type, 'bool_value' : True}
-                print "answer_message = ", answer_message
+                print "Answer message = ", answer_message
                 json_answer_message = json.dumps(answer_message)
                 self.write_message(json_answer_message)
             except KeyError:
                 pass
-            
-            
-
+           
         if(request_type == "CheckComplete"):
+        	print "CheckComplete message"
 	    	db.execute("UPDATE `unitygame_electrolab`.`stand_state` SET `complete`='1' WHERE `id`='2';")
-        # Reverse Message and send it back
-        #print 'sending back message: %s' % message[::-1]
-        #self.write_message(message[::-1])
+	        # Reverse Message and send it back
+	        #print 'sending back message: %s' % message[::-1]
+	        #self.write_message(message[::-1])
  
     def on_close(self):
-        print 'ws connection closed'
+        print 'Standtask websocket connection was closed'
         #handlers.append(self)
         handlers.discard(self)
  
@@ -151,23 +167,25 @@ class WSHandler(websocket.WebSocketHandler):
 def GetConnection():
     return Connection('127.0.0.1', 'electrolab', user='django', password='31415926')
 
-#Function for background calling test
-def do_something(handler):
-    print "background_task"
-    #for handler in handlers:
-    #    handler.write_message('automatic message')
-    #self.write_message(json_answer) 
+#Function for background looping
+def check_standtask_activate():
+    print "check_standtask_activate"
+    for user_handler in user_handlers:
+    	#select from database activate state of current user and number of current standtask
+ 		#send messages to all users with activated flag in true state
+    	#self.write_message(json_answer) 
 
 #Background infinity cycle test
 @gen.coroutine
-def minute_loop():
+def background_loop(delay = 1):
     while True:
-        #do_something()
-        yield gen.sleep(1)
+        check_standtask_activate()
+        yield gen.sleep(delay)
 
 application = tornado.web.Application([
     (r'/', IndexHandler),
-    (r'/ws', WSHandler),
+    (r'/standtask', StandtaskHandler),
+    (r'/training', TrainingHandler),
     (r'/favicon.ico', tornado.web.StaticFileHandler,dict(url='/static/favicon.ico',permanent=False)),
     (r'/static/(.*)', tornado.web.StaticFileHandler, {"path": "plserver"}),
 ])
@@ -179,6 +197,6 @@ if __name__ == "__main__":
     print '*** Server Started at %s***' % myIP
     #auto_loop()
     #IOLoop.instance().add_callback(f)
-    IOLoop.current().spawn_callback(minute_loop) #Stat background loop
+    IOLoop.current().spawn_callback(background_loop) #Stat background_loop
     IOLoop.instance().start() #Start main loop
     #tornado.ioloop.IOLoop.instance().start()
