@@ -32,7 +32,7 @@ handler_users = {}
 class IndexHandler(tornado.web.RequestHandler):
     def get(self):
         self.render("index.html")
-	
+
 class TrainingHandler(websocket.WebSocketHandler):
     def open(self):
         print 'Training websocket connection was opened'
@@ -40,7 +40,7 @@ class TrainingHandler(websocket.WebSocketHandler):
         #handlers.append(self)
 
     def on_message(self, message):
-		print 'Received message from Training websocket connection'
+        print 'Received message from Training websocket connection'
     
     def on_close(self):
         print 'Training websocket connection was closed'
@@ -58,8 +58,8 @@ class StandtaskHandler(websocket.WebSocketHandler):
         #handlers.append(self)
 
     def on_message(self, message):
-    	print 'Received message from Standtask websocket connection'
-	    #Parse request json package
+        print 'Received message from Standtask websocket connection'
+        #Parse request json package
         python_request = json.loads(message)
 
         #print "python_request['login']: %s" % python_request['login']
@@ -71,9 +71,9 @@ class StandtaskHandler(websocket.WebSocketHandler):
 
         print 'Received message:  %s' % python_request
         
-		if(request_type == "CheckConnection"):
-			answer_message = {'request_id' : request_id, 'request_type' : request_type, 'bool_value' : True}
-            print "Answer message = ", answer_message
+        if(request_type == "CheckConnection"):
+            answer_message = {'request_id' : request_id, 'request_type' : request_type, 'bool_value' : True}
+            print "Answer message", answer_message
             json_answer_message = json.dumps(answer_message)
             self.write_message(json_answer_message)
 
@@ -92,7 +92,7 @@ class StandtaskHandler(websocket.WebSocketHandler):
             db = GetConnection()
             dbPasswordStruct = db.get("{}{}{}".format("SELECT password FROM auth_user WHERE username = \'", enteredLogin, "\' LIMIT 1;"))
             db.close()    
-            print "Password from database : %s " % dbPasswordStruct #Debug
+            print "Password from database", dbPasswordStruct #Debug
             passwordList = dbPasswordStruct['password'].split('$')
             print passwordList[0] #Debug
             print passwordList[1] #Debug
@@ -150,14 +150,20 @@ class StandtaskHandler(websocket.WebSocketHandler):
                 pass
            
         if(request_type == "CheckComplete"):
-        	print "CheckComplete message"
-	    	db.execute("UPDATE `unitygame_electrolab`.`stand_state` SET `complete`='1' WHERE `id`='2';")
-	        # Reverse Message and send it back
-	        #print 'sending back message: %s' % message[::-1]
-	        #self.write_message(message[::-1])
+            print "CheckComplete message"
+            db.execute("UPDATE `unitygame_electrolab`.`stand_state` SET `complete`='1' WHERE `id`='2';")
+            # Reverse Message and send it back
+            #print 'sending back message: %s' % message[::-1]
+            #self.write_message(message[::-1])
  
     def on_close(self):
         print 'Standtask websocket connection was closed'
+
+        answer_message = {'request_id' : "", 'request_type' : "CheckConnection", 'bool_value' : False}
+        print "Answer message", answer_message
+        json_answer_message = json.dumps(answer_message)
+        self.write_message(json_answer_message)
+        
         #handlers.append(self)
         handlers.discard(self)
  
@@ -171,9 +177,10 @@ def GetConnection():
 def check_standtask_activate():
     print "check_standtask_activate"
     for user_handler in user_handlers:
-    	#select from database activate state of current user and number of current standtask
- 		#send messages to all users with activated flag in true state
-    	#self.write_message(json_answer) 
+        print ""
+        #select from database activate state of current user and number of current standtask
+        #send messages to all users with activated flag in true state
+        #self.write_message(json_answer)
 
 #Background infinity cycle test
 @gen.coroutine
@@ -197,6 +204,8 @@ if __name__ == "__main__":
     print '*** Server Started at %s***' % myIP
     #auto_loop()
     #IOLoop.instance().add_callback(f)
-    IOLoop.current().spawn_callback(background_loop) #Stat background_loop
+    
+    #IOLoop.current().spawn_callback(background_loop) #Stat background_loop
     IOLoop.instance().start() #Start main loop
+    
     #tornado.ioloop.IOLoop.instance().start()
