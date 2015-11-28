@@ -22,6 +22,7 @@ handlers = set()
 #logged_users = []
 user_handlers = {}
 handler_users = {}
+user_sessions = {} #FIXME. Add methods for add users to dict and remove from dict 
 
 #@gen.engine
 #def f():
@@ -32,6 +33,86 @@ handler_users = {}
 class IndexHandler(tornado.web.RequestHandler):
     def get(self):
         self.render("index.html")
+
+class LoginHandler(tornado.web.RequestHandler):
+	if(request_type == "CheckConnection"):
+		print "CheckConnection message" #Debug
+		answer_message = {'request_id' : request_id, 'request_type' : request_type, 'bool_value' : True}
+        print "Answer message = ", answer_message
+        json_answer_message = json.dumps(answer_message)
+        self.write_message(json_answer_message)
+
+    if(request_type == "LogIn"):
+        print "LogIn message" #Debug
+        
+        loginClass = json.loads(request_data)
+        print loginClass #Debug
+        print loginClass['login'] #Debug
+        print loginClass['password'] #Debug
+        enteredLogin = loginClass['login']
+        enteredPassword = loginClass['password']
+
+        #db.execute("SELECT FROM electrolab password WHERE username = login)
+        #db.reconnect()
+        db = GetConnection()
+        dbPasswordStruct = db.get("{}{}{}".format("SELECT password FROM auth_user WHERE username = \'", enteredLogin, "\' LIMIT 1;"))
+        db.close()    
+        print "Password from database", dbPasswordStruct #Debug
+        passwordList = dbPasswordStruct['password'].split('$')
+        print passwordList[0] #Debug
+        print passwordList[1] #Debug
+        print passwordList[2] #Debug
+        print passwordList[3] #Debug
+
+        #get salt from db password
+        passwordSalt = passwordList[2]
+        
+        correctPasswordHash = passwordList[3]
+        
+        #generate hash from entered password
+        key = hashlib.pbkdf2_hmac('sha256', enteredPassword.encode('ascii'), passwordSalt.encode('ascii'), 20000)
+        
+        #binascii.hexlify(dk)
+        
+        stringKey = base64.b64encode(key).decode('ascii').strip()
+        print stringKey #Debug
+
+        #compare with hash from password 
+        if(correctPasswordHash == stringKey):
+            print "Correct password"
+
+            #Add user login to dict with together with handler
+            #logged_users.append(enteredLogin)
+            user_handlers.update([(enteredLogin, self)])
+            handler_users.update([(self, enteredLogin)])
+            
+            print user_handlers.items()
+            print user_handlers.get("KOS")
+            
+            answer_message = {'request_id' : request_id, 'request_type' : request_type, 'bool_value' : True}
+            print "answer_message = ", answer_message
+            json_answer_message = json.dumps(answer_message)
+            self.write_message(json_answer_message)
+            #generate answer package with received request_id
+            #json_answer = json.dumps()
+        else:
+            print "Incorrect password"
+        
+        #self.write_message(json_answer)   
+
+    if(request_type == "LogOut"):
+        print "LogOut message"
+        
+        try:
+            user_name = handler_users.pop(self)
+            del user_handlers[user_name]
+            print "User ", user_name, " was logged out"
+            answer_message = {'request_id' : request_id, 'request_type' : request_type, 'bool_value' : True}
+            print "Answer message = ", answer_message
+            json_answer_message = json.dumps(answer_message)
+            self.write_message(json_answer_message)
+        except KeyError:
+            pass
 
 class TrainingHandler(websocket.WebSocketHandler):
     def open(self):
@@ -54,13 +135,25 @@ class TrainingHandler(websocket.WebSocketHandler):
 
         print 'Received message:  %s' % python_request
         
+		if(request_type == "GetSessions"):
+			print "GetSessions message" #Debug
+			#Send list with all created sessions
+
+		if(request_type == "JoinToSession"):
+			print "JoinToSession message" #Debug
+			#Add user to one of created sessions
+
+		if(request_type == "CreateSession"):
+			print "CreateSession message" #Debug
+			#Create new session id and add user to new session
+
 		if(request_type == "Viss"):
 			print "Viss message" #Debug
-			#Send Visualizations id to all connected users in current training
+			#Send Visualizations id to all connected users in current session
 
 		if(request_type == "Params"):
 			print "Params message" #Debug
-			#Send Params id with values to all connected users in current training
+			#Send Params id with values to all connected users in current session
 
 		if(request_type == "Event"):
 			print "Event message" #Debug
@@ -93,93 +186,18 @@ class StandtaskHandler(websocket.WebSocketHandler):
         request_type = python_request[1]
         request_data = python_request[2]
 
+        user_name = handler_users[self]
+        session_id = user_sessions[user_name]
+
         print 'Received message:  %s' % python_request
-        
-		if(request_type == "CheckConnection"):
-			print "CheckConnection message" #Debug
-			answer_message = {'request_id' : request_id, 'request_type' : request_type, 'bool_value' : True}
-            print "Answer message = ", answer_message
-            json_answer_message = json.dumps(answer_message)
-            self.write_message(json_answer_message)
-
-        if(request_type == "LogIn"):
-            print "LogIn message" #Debug
-            
-            loginClass = json.loads(request_data)
-            print loginClass #Debug
-            print loginClass['login'] #Debug
-            print loginClass['password'] #Debug
-            enteredLogin = loginClass['login']
-            enteredPassword = loginClass['password']
-
-            #db.execute("SELECT FROM electrolab password WHERE username = login)
-            #db.reconnect()
-            db = GetConnection()
-            dbPasswordStruct = db.get("{}{}{}".format("SELECT password FROM auth_user WHERE username = \'", enteredLogin, "\' LIMIT 1;"))
-            db.close()    
-            print "Password from database", dbPasswordStruct #Debug
-            passwordList = dbPasswordStruct['password'].split('$')
-            print passwordList[0] #Debug
-            print passwordList[1] #Debug
-            print passwordList[2] #Debug
-            print passwordList[3] #Debug
-
-            #get salt from db password
-            passwordSalt = passwordList[2]
-            
-            correctPasswordHash = passwordList[3]
-            
-            #generate hash from entered password
-            key = hashlib.pbkdf2_hmac('sha256', enteredPassword.encode('ascii'), passwordSalt.encode('ascii'), 20000)
-            
-            #binascii.hexlify(dk)
-            
-            stringKey = base64.b64encode(key).decode('ascii').strip()
-            print stringKey #Debug
-
-            #compare with hash from password 
-            if(correctPasswordHash == stringKey):
-                print "Correct password"
-
-                #Add user login to dict with together with handler
-                #logged_users.append(enteredLogin)
-                user_handlers.update([(enteredLogin, self)])
-                handler_users.update([(self, enteredLogin)])
-                
-                print user_handlers.items()
-                print user_handlers.get("KOS")
-                
-                answer_message = {'request_id' : request_id, 'request_type' : request_type, 'bool_value' : True}
-                print "answer_message = ", answer_message
-                json_answer_message = json.dumps(answer_message)
-                self.write_message(json_answer_message)
-                #generate answer package with received request_id
-                #json_answer = json.dumps()
-            else:
-                print "Incorrect password"
-            
-            #self.write_message(json_answer)   
-
-        if(request_type == "LogOut"):
-            print "LogOut message"
-            
-            try:
-                user_name = handler_users.pop(self)
-                del user_handlers[user_name]
-                print "User ", user_name, " was logged out"
-                answer_message = {'request_id' : request_id, 'request_type' : request_type, 'bool_value' : True}
-                print "Answer message = ", answer_message
-                json_answer_message = json.dumps(answer_message)
-                self.write_message(json_answer_message)
-            except KeyError:
-                pass
            
         if(request_type == "CheckComplete"):
             print "CheckComplete message"
-            db.execute("UPDATE `unitygame_electrolab`.`stand_state` SET `complete`='1' WHERE `id`='2';")
-            # Reverse Message and send it back
-            #print 'sending back message: %s' % message[::-1]
-            #self.write_message(message[::-1])
+            #Select correct connections list from database
+            #WHERE stantask_id = ' '
+            #Set completed flag to 1 (true) if connections is correct
+            #db.execute("UPDATE `unitygame_electrolab`.`stand_state` SET `complete`='1' WHERE `id`='2';")
+            
  
     def on_close(self):
         print 'Standtask websocket connection was closed'
@@ -202,8 +220,8 @@ def GetConnection():
 def check_standtask_activate():
     print "check_standtask_activate"
     for user_handler in user_handlers:
-        print ""
-        #select from database activate state of current user and number of current standtask
+        #print ""
+        #select from database activate flag of current user and number of current standtask
         #send messages to all users with activated flag in true state
         #self.write_message(json_answer)
 
@@ -216,6 +234,7 @@ def background_loop(delay = 1):
 
 application = tornado.web.Application([
     (r'/', IndexHandler),
+    (r'/login', LoginHandler),
     (r'/standtask', StandtaskHandler),
     (r'/training', TrainingHandler),
     (r'/favicon.ico', tornado.web.StaticFileHandler,dict(url='/static/favicon.ico',permanent=False)),
