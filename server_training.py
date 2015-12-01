@@ -1,6 +1,23 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import tornado.httpserver
+from tornado import websocket, web, ioloop
+from torndb import Connection
+
+import datetime
+import time
+from tornado.ioloop import IOLoop
+from tornado import gen
+
+import json
+import socket
+import MySQLdb
+from threading import Thread
+import hashlib, binascii
+import base64
+
+
 class TrainingHandler(websocket.WebSocketHandler):
     def open(self):
         print 'Training websocket connection was opened'
