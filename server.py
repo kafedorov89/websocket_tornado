@@ -17,6 +17,7 @@ from threading import Thread
 import hashlib, binascii
 import base64
 
+#Import class for server
 from server_training import LoginHandler
 from server_stand import StandtaskHandler
 from server_login import LoginHandler
