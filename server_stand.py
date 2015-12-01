@@ -93,6 +93,11 @@ class StandtaskHandler(websocket.WebSocketHandler):
                 #Add user login to dict together with handler
                 #logged_users.append(enteredLogin)
                 user_handlers.update([(enteredLogin, self)])
+
+                db = dc.GetConnection()
+                user_id = db.get("{}{}{}".format("SELECT id FROM auth_user WHERE username = \'", enteredLogin, "\' LIMIT 1;"))['id']
+                print "user_id = ", user_id
+                db.close() 
                 handler_users.update([(self, [enteredLogin, user_id])])
                 
                 #print user_handlers.items()
@@ -157,9 +162,9 @@ class StandtaskHandler(websocket.WebSocketHandler):
 
         if(request_type == "UploadAllSchemas"): #Using by admin when upload all schemas to database from local files
             pass
-            #get request_data 
-            #parse to list with groups (standtask_id, conn_json, rope_json) 
-            #upload all groups to main_standtask_data 
+            #get request_data with standtask_id, conn_json, rope_json
+            #parse to list with groups (standtask_id, conn_json, rope_json) for each standtask 
+            #upload all groups to main_standtask_data, each to one row 
         if(request_type == "GetUserRopes"): #Using by teacher when choose student for check his ropes
             pass
             #get user_name from request_data
