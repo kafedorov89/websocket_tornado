@@ -81,18 +81,47 @@ class LoginHandler(tornado.web.RequestHandler):
         if(correctPasswordHash == stringKey):
             print "Correct password"
 
-            #Add user login to dict with together with handler
+            #Add user login to dict together with handler
             #logged_users.append(enteredLogin)
             user_handlers.update([(enteredLogin, self)])
             handler_users.update([(self, enteredLogin)])
             
-            print user_handlers.items()
-            print user_handlers.get("KOS")
+            #print user_handlers.items()
+            #print user_handlers.get("KOS")
             
+            #Create answer for Callbackfunction in Unity
             answer_message = {'request_id' : request_id, 'request_type' : request_type, 'bool_value' : True}
             print "answer_message = ", answer_message
             json_answer_message = json.dumps(answer_message)
             self.write_message(json_answer_message)
+            
+            #------------------------------------------------------------------------------------------------------
+            #Get information about UserRole of current user
+            db = GetConnection()
+            dbRoleFlag = db.get("{}{}{}".format("SELECT is_staff, is_superuser FROM auth_user WHERE username = \'", enteredLogin, "\' LIMIT 1;"))
+            db.close()
+
+            print "is_staff = ", dbRoleFlag['is_staff']
+            print "is_superuser = ", dbRoleFlag['is_superuser']
+
+            is_staff_flag = dbRoleFlag['is_staff']
+            is_superuser_flag = dbRoleFlag['is_superuser']
+
+            if((is_staff_flag && is_superuser_flag) || is_superuser_flag):
+                user_role_type = 2 #superuser
+            else if(is_staff_flag):
+                user_role_type = 1 #teacher
+            else:
+                user_role_type = 0 #student
+            
+            print "user_role_type = ", user_role_type
+
+            answer_message = {'request_id' : request_id, 'request_type' : "UserRole", 'int_value' : user_role_type}
+            print "answer_message = ", answer_message
+            json_answer_message = json.dumps(answer_message)
+            self.write_message(json_answer_message)
+            #------------------------------------------------------------------------------------------------------            
+            
             #generate answer package with received request_id
             #json_answer = json.dumps()
         else:
