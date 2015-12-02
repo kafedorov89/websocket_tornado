@@ -18,6 +18,7 @@ import hashlib, binascii
 import base64
 
 import db_connect as dc
+import server_login as lg
 
 user_handlers = {} #Dict with username as key (return websocket_handler by username)
 handler_users = {} #Dict with websocket_handler object as key
@@ -45,133 +46,61 @@ class StandtaskHandler(websocket.WebSocketHandler):
         print 'Received message:  %s' % python_request
 
         if(request_type == "CheckConnection"):
-            print "CheckConnection message" #Debug
-            answer_message = {'request_id' : request_id, 'request_type' : request_type, 'bool_value' : True}
-            print "Answer message = ", answer_message
-            json_answer_message = json.dumps(answer_message)
-            self.write_message(json_answer_message)
+            lg.check_connection(request_id, request_type, request_data, self)
 
         if(request_type == "LogIn"):
-            print "LogIn message" #Debug
-            
-            loginClass = json.loads(request_data)
-            print loginClass #Debug
-            print loginClass['login'] #Debug
-            print loginClass['password'] #Debug
-            enteredLogin = loginClass['login']
-            enteredPassword = loginClass['password']
-
-            #db.execute("SELECT FROM electrolab password WHERE username = login)
-            #db.reconnect()
-            db = dc.GetConnection()
-            dbPasswordStruct = db.get("{}{}{}".format("SELECT password FROM auth_user WHERE username = \'", enteredLogin, "\' LIMIT 1;"))
-            db.close()    
-            print "Password from database", dbPasswordStruct #Debug
-            passwordList = dbPasswordStruct['password'].split('$')
-            print passwordList[0] #Debug
-            print passwordList[1] #Debug
-            print passwordList[2] #Debug
-            print passwordList[3] #Debug
-
-            #get salt from db password
-            passwordSalt = passwordList[2]
-            
-            correctPasswordHash = passwordList[3]
-            
-            #generate hash from entered password
-            key = hashlib.pbkdf2_hmac('sha256', enteredPassword.encode('ascii'), passwordSalt.encode('ascii'), 20000)
-            
-            #binascii.hexlify(dk)
-            
-            stringKey = base64.b64encode(key).decode('ascii').strip()
-            print stringKey #Debug
-
-            #compare with hash from password 
-            if(correctPasswordHash == stringKey):
-                print "Correct password"
-
-                #Add user login to dict together with handler
-                #logged_users.append(enteredLogin)
-                user_handlers.update([(enteredLogin, self)])
-
-                db = dc.GetConnection()
-                user_id = db.get("{}{}{}".format("SELECT id FROM auth_user WHERE username = \'", enteredLogin, "\' LIMIT 1;"))['id']
-                print "user_id = ", user_id
-                db.close() 
-                handler_users.update([(self, [enteredLogin, user_id])])
-                
-                #print user_handlers.items()
-                #print user_handlers.get("KOS")
-                
-                #Create answer for Callbackfunction in Unity
-                answer_message = {'request_id' : request_id, 'request_type' : request_type, 'bool_value' : True}
-                print "answer_message = ", answer_message
-                json_answer_message = json.dumps(answer_message)
-                self.write_message(json_answer_message)
-                
-                #------------------------------------------------------------------------------------------------------
-                #Get information about UserRole of current user
-                db = dc.GetConnection()
-                dbRoleFlag = db.get("{}{}{}".format("SELECT is_staff, is_superuser FROM auth_user WHERE username = \'", enteredLogin, "\' LIMIT 1;"))
-                db.close()
-
-                print "is_staff = ", dbRoleFlag['is_staff']
-                print "is_superuser = ", dbRoleFlag['is_superuser']
-
-                is_staff_flag = dbRoleFlag['is_staff']
-                is_superuser_flag = dbRoleFlag['is_superuser']
-
-                if((is_staff_flag and is_superuser_flag) or is_superuser_flag):
-                    user_role_type = 2 #superuser
-                elif(is_staff_flag):
-                    user_role_type = 1 #teacher
-                else:
-                    user_role_type = 0 #student
-                
-                print "user_role_type = ", user_role_type
-
-                answer_message = {'request_id' : request_id, 'request_type' : "UserRole", 'int_value' : user_role_type}
-                print "answer_message = ", answer_message
-                json_answer_message = json.dumps(answer_message)
-                self.write_message(json_answer_message)
-                #------------------------------------------------------------------------------------------------------            
-                
-                #generate answer package with received request_id
-                #json_answer = json.dumps()
-            else:
-                print "Incorrect password"
-            
-            #self.write_message(json_answer)   
+            lg.log_in(request_id, request_type, request_data, self)
 
         if(request_type == "LogOut"):
-            print "LogOut message"
-            
-            try:
-                username = handler_users.pop(self)[0]
-                del user_handlers[username]
-                print "User ", username, " was logged out"
-                answer_message = {'request_id' : request_id, 'request_type' : request_type, 'bool_value' : True}
-                print "Answer message = ", answer_message
-                json_answer_message = json.dumps(answer_message)
-                self.write_message(json_answer_message)
-            except KeyError:
-                pass
+            lg.log_out(request_id, request_type, request_data, self)
+
 
 
         #username = handler_users[self]
+        if(request_type == "GetStudentStandtaskList"): #Using by teacher when choose student for check his ropes
+            #loginClass = json.loads(request_data)
+            #print loginClass #Debug
+            #print loginClass['login'] #Debug
+            #print loginClass['password'] #Debug
+            
+            #enteredLogin = loginClass['login']
+            #enteredPassword = loginClass['password']
+            #get list with active user from main_standtask_state
+            user_id, 
+            
+            db = dc.GetConnection()
+            user_id_list = db.get("SELECT user_id, standtask_id FROM main_standtask_state WHERE activate = 1")
+            #user_info_list = username, first_name, last_name, standtask_id
+            db.close()
+
+            print "user_id list = ", user_id_list
+
+            ##send to self.write_message(json_answer_message)
+            #print "List with active users ", username, " was logged out"
+            #answer_message = {'request_id' : request_id, 'request_type' : request_type, 'string_list' : ['username1', 'username2', 'username3']}
+            #print "Answer message = ", answer_message
+            #json_answer_message = json.dumps(answer_message)
+            #self.write_message(json_answer_message)
+
+        if(request_type == "GetStudentStandtask"): #Using by teacher when choose student for check his ropes
+            pass
+            #get user_name from request_data
+            #get user_rope_json and full_username from main_standtask_user
+            #send to self.write_message(json_answer_message)
+
+        if(request_type == "UploadAllSchemas"): #Using by admin when upload all schemas to database from local files
+            pass
+            #get request_data with standtask_id, conn_json, rope_json
+            #parse to list with groups (standtask_id, conn_json, rope_json) for each standtask 
+            #upload all groups to main_standtask_data, each to one row
 
         if(request_type == "UploadAllSchemas"): #Using by admin when upload all schemas to database from local files
             pass
             #get request_data with standtask_id, conn_json, rope_json
             #parse to list with groups (standtask_id, conn_json, rope_json) for each standtask 
             #upload all groups to main_standtask_data, each to one row 
-        if(request_type == "GetUserRopes"): #Using by teacher when choose student for check his ropes
-            pass
-            #get user_name from request_data
-            #get user_rope_json from main_standtask_user
-            #send to self.write_message(json_answer_message)
 
-        if(request_type == "SetComplete"): #Using by student when check complete selected schema
+        if(request_type == "SetStandtaskComplete"): #Using by student when check complete selected schema
             print "CheckComplete message"
             #Set completed flag to 1 (true) if is_complete flag from request_data is True
             db = dc.GetConnection()
