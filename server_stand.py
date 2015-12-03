@@ -69,11 +69,22 @@ class StandtaskHandler(websocket.WebSocketHandler):
             user_id, 
             
             db = dc.GetConnection()
-            user_id_list = db.get("SELECT user_id, standtask_id FROM main_standtask_state WHERE activate = 1")
-            #user_info_list = username, first_name, last_name, standtask_id
-            db.close()
+            activate_list = db.get("SELECT user_id, standtask_id FROM main_standtask_state WHERE activate = 1")
+            user_id_list = activate_list[0]
+            print "user_id_list", user_id_list
 
-            print "user_id list = ", user_id_list
+            standtask_id_list = activate_list[0]
+            print "user_id_list", user_id_list
+
+            ##---
+            #standtask_name_list = db.get("{}{}{}".format("SELECT standtask_name FROM main_standtask_data WHERE standtask_id = \'", standtask_id_list, "\';"))
+            #print "standtask_name_list = ", standtask_name_list 
+            
+            #user_fullname_list = db.get("{}{}{}".format("SELECT first_name, last_name FROM auth_user WHERE user_id = \'", user_id_list, "\';"))
+            #print "user_fullname_list = ", user_fullname_list 
+            ##---
+            
+            db.close()
 
             ##send to self.write_message(json_answer_message)
             #print "List with active users ", username, " was logged out"
