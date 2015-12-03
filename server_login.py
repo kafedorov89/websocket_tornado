@@ -19,6 +19,9 @@ import base64
 
 import db_connect as dc
 
+#!user_handlers = {} #Dict with username as key (return websocket_handler by username)
+#!handler_users = {} #Dict with websocket_handler object as key
+
 def check_connection(request_id, request_type, request_data, ws_heandler):
     print "CheckConnection message" #Debug
     answer_message = {'request_id' : request_id, 'request_type' : request_type, 'bool_value' : True}
@@ -67,34 +70,51 @@ def log_in(request_id, request_type, request_data, ws_heandler):
 
         #Add user login to dict together with handler
         #logged_users.append(enteredLogin)
-        user_handlers.update([(enteredLogin, self)])
+        #!user_handlers.update([(enteredLogin, self)])
 
         db = dc.GetConnection()
-        user_id = db.get("{}{}{}".format("SELECT id FROM auth_user WHERE username = \'", enteredLogin, "\' LIMIT 1;"))['id']
-        print "user_id = ", user_id
+        user_info = db.get("{}{}{}".format("SELECT id, first_name, last_name, is_staff, is_superuser FROM auth_user WHERE username = \'", enteredLogin, "\' LIMIT 1;"))
+        print "user_info = ", user_info
         db.close() 
-        handler_users.update([(self, [enteredLogin, user_id])])
+        #!handler_users.update([(self, [enteredLogin, user_id])])
         
         #print user_handlers.items()
         #print user_handlers.get("KOS")
         
-        #Create answer for Callbackfunction in Unity
+        #Send to client information about correct login and password
         answer_message = {'request_id' : request_id, 'request_type' : request_type, 'bool_value' : True}
         print "answer_message = ", answer_message
         json_answer_message = json.dumps(answer_message)
         ws_heandler.write_message(json_answer_message)
         
         #------------------------------------------------------------------------------------------------------
-        #Get information about UserRole of current user
-        db = dc.GetConnection()
-        dbRoleFlag = db.get("{}{}{}".format("SELECT is_staff, is_superuser FROM auth_user WHERE username = \'", enteredLogin, "\' LIMIT 1;"))
-        db.close()
+        #Send to client information about UserFullName of current user
+        first_name = ""
+        last_name = ""
 
-        print "is_staff = ", dbRoleFlag['is_staff']
-        print "is_superuser = ", dbRoleFlag['is_superuser']
+        try:
+            first_name = user_info['first_name']
+        except KeyError:
+            pass
 
-        is_staff_flag = dbRoleFlag['is_staff']
-        is_superuser_flag = dbRoleFlag['is_superuser']
+        try:
+            last_name = user_info['last_name']
+        except KeyError:
+            pass
+        
+        user_full_name = u"{} {}".format(first_name, last_name) 
+        answer_message = {'request_id' : request_id, 'request_type' : "UserFullName", 'string_value' : user_full_name}
+        print "answer_message = ", answer_message
+        json_answer_message = json.dumps(answer_message)
+        ws_heandler.write_message(json_answer_message)
+
+        #------------------------------------------------------------------------------------------------------
+        #Send to client information about UserRole of current user
+        print "is_staff = ", user_info['is_staff']
+        print "is_superuser = ", user_info['is_superuser']
+
+        is_staff_flag = user_info['is_staff']
+        is_superuser_flag = user_info['is_superuser']
 
         if((is_staff_flag and is_superuser_flag) or is_superuser_flag):
             user_role_type = 2 #superuser
@@ -120,8 +140,8 @@ def log_in(request_id, request_type, request_data, ws_heandler):
 def log_out(request_id, request_type, request_data, ws_heandler):
     print "LogOut message"        
     try:
-        username = handler_users.pop(self)[0]
-        del user_handlers[username]
+        #!username = handler_users.pop(self)[0]
+        #!del user_handlers[username]
         print "User ", username, " was logged out"
         answer_message = {'request_id' : request_id, 'request_type' : request_type, 'bool_value' : True}
         print "Answer message = ", answer_message
