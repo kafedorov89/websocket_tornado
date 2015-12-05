@@ -1,0 +1,8 @@
+id,password,last_login,is_superuser,username,first_name,last_name,email,is_staff,is_active,date_joined
+1,pbkdf2_sha256$20000$owTvMXveOLzJ$I/CG6XGZBNUsoKp9VgXd6bPjNirD6HMURz7267qdKz8=,"2015-12-05 11:10:39",1,admin,,,,1,1,"2015-08-20 13:01:19"
+2,pbkdf2_sha256$20000$St9wKMrebnaO$mFLMWfmzBxy1lAdDXWql9n/37Jnaiyf4bTuOys9B6TQ=,"2015-11-23 11:53:12",0,1,,,,0,1,"2015-11-03 17:47:18"
+3,pbkdf2_sha256$20000$I98qWKAN0mjf$D4Q3WjoVUhcCzFed41CJdGG6AvK/O6d5Z0G4NVLERh8=,"2015-11-11 09:44:29",0,KOS,Преподаватель,Преподавателевич,,1,1,"2015-11-03 18:51:06"
+4,pbkdf2_sha256$20000$ZsLomRFSxY4X$wEQVVbPlcjRxqcf/ukFZLRz7qoD6eMrjMzrqRc5s2ks=,"2015-11-10 16:12:25",0,4keydach,Павел,Мерзляков,,0,1,"2015-11-09 17:22:44"
+5,pbkdf2_sha256$20000$MToIrZxDOKPa$dkvp65GcNQxE/j5WAdTXAfP4M9LYKT1eiuit4W3U3wg=,"2015-12-05 09:30:40",0,test,Иван,Иванов,,0,1,"2015-11-10 16:22:11"
+6,pbkdf2_sha256$20000$6YzW2WIPUGkx$vfG1ky8Q99XWbSXw87rt9wOSOgiEKrNaDd85Bnveo5w=,NULL,0,test_prepod,Сидор,Сидоров,,1,1,"2015-11-10 16:24:26"
+7,pbkdf2_sha256$20000$sXnknoeKr5RQ$uDF5OvDNEJFx0LZStGj4UhdZVxvLkOC3XA1Jr3WoIfA=,"2015-12-02 11:42:33",0,user1,Константин,Фёдоров,kaf_89@mail.ru,0,1,"2015-12-02 11:42:22"

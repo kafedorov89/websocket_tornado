@@ -20,6 +20,40 @@ import base64
 import db_connect as dc
 import server_login as lg
 
+#Function for background looping
+def check_standtask_activate():
+    print "check_standtask_activate"
+    
+    db = dc.GetConnection()
+    activate_list = db.query("SELECT id, user_id, standtask_id FROM main_standtask_state WHERE activate = 1")
+    
+    user_id_list = []
+    standtask_id_list = []
+
+    for active_standtask in activate_list:
+
+        #Get ws_handler for activate user_id
+        user_handler = user_handlers[active_standtask['user_id']]
+        
+        #Get line in table main_standtask_state
+        activate_standtask_id = active_standtask['id'] 
+        
+        #Get standtask_id for activate
+        standtask_id = active_standtask['standtask_id'] 
+
+        #Get activated standtask conn_json
+        standtask_data = db.get("{}{}{}".format("SELECT conn_json, standtask_name FROM main_standtask_data WHERE standtask_id = \'", standtask_id, "\';"))
+
+        #Send activate message to user
+        answer_message = {'request_id' : request_id, 'request_type' : 'ActivateStandtask', 'int_list' : [activate_standtask_id, standtask_id], 'string_value' : standtask_data['conn_json']}
+        #print "answer_message = ", answer_message
+        json_answer_message = json.dumps(answer_message)
+        ws_heandler.write_message(json_answer_message)
+        print "Activate, standtask №", standtask_id, ", user_id = ", user_id
+        
+    db.close()
+
+
 class StandtaskHandler(websocket.WebSocketHandler):
     def open(self):
         print 'Standtask websocket connection was opened'
@@ -46,10 +80,10 @@ class StandtaskHandler(websocket.WebSocketHandler):
             lg.check_connection(request_id, request_type, request_data, self)
 
         if(request_type == "LogIn"):
-            lg.log_in(request_id, request_type, request_data, self)
+            lg.log_in(request_id, request_type, request_data, self, handler_users, user_handlers)
 
         if(request_type == "LogOut"):
-            lg.log_out(request_id, request_type, request_data, self)
+            lg.log_out(request_id, request_type, request_data, self, handler_users, user_handlers)
 
 
 

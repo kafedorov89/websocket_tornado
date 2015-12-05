@@ -7,8 +7,6 @@ from torndb import Connection
 
 import datetime
 import time
-from tornado.ioloop import IOLoop
-from tornado import gen
 
 import json
 import socket
@@ -19,8 +17,8 @@ import base64
 
 import db_connect as dc
 
-#!user_handlers = {} #Dict with username as key (return websocket_handler by username)
-#!handler_users = {} #Dict with websocket_handler object as key
+user_handlers = {} #Dict with username as key (return websocket_handler by username)
+handler_users = {} #Dict with websocket_handler object as key
 
 def check_connection(request_id, request_type, request_data, ws_heandler):
     print "CheckConnection message" #Debug
@@ -29,7 +27,7 @@ def check_connection(request_id, request_type, request_data, ws_heandler):
     json_answer_message = json.dumps(answer_message)
     ws_heandler.write_message(json_answer_message)
 
-def log_in(request_id, request_type, request_data, ws_heandler):
+def log_in(request_id, request_type, request_data, ws_heandler, handler_users, user_handlers):
     print "LogIn message" #Debug
             
     loginClass = json.loads(request_data)
@@ -70,13 +68,15 @@ def log_in(request_id, request_type, request_data, ws_heandler):
 
         #Add user login to dict together with handler
         #logged_users.append(enteredLogin)
-        #!user_handlers.update([(enteredLogin, self)])
+        
 
         db = dc.GetConnection()
         user_info = db.get("{}{}{}".format("SELECT id, first_name, last_name, is_staff, is_superuser FROM auth_user WHERE username = \'", enteredLogin, "\' LIMIT 1;"))
         print "user_info = ", user_info
         db.close() 
-        #!handler_users.update([(self, [enteredLogin, user_id])])
+        
+        handler_users.update([(self, user_info['id'])])
+        user_handlers.update([(user_info['id'], self)])
         
         #print user_handlers.items()
         #print user_handlers.get("KOS")
@@ -137,11 +137,11 @@ def log_in(request_id, request_type, request_data, ws_heandler):
         print "Incorrect password"
     
     #self.write_message(json_answer)   
-def log_out(request_id, request_type, request_data, ws_heandler):
+def log_out(request_id, request_type, request_data, ws_heandler, handler_users, user_handlers):
     print "LogOut message"        
     try:
-        #!username = handler_users.pop(self)[0]
-        #!del user_handlers[username]
+        user_id = handler_users.pop(self)[0]
+        del user_handlers[user_id]
         print "User ", username, " was logged out"
         answer_message = {'request_id' : request_id, 'request_type' : request_type, 'bool_value' : True}
         print "Answer message = ", answer_message
