@@ -80,10 +80,10 @@ class StandtaskHandler(websocket.WebSocketHandler):
             lg.check_connection(request_id, request_type, request_data, self)
 
         if(request_type == "LogIn"):
-            lg.log_in(request_id, request_type, request_data, self, handler_users, user_handlers)
+            lg.log_in(request_id, request_type, request_data, self)
 
         if(request_type == "LogOut"):
-            lg.log_out(request_id, request_type, request_data, self, handler_users, user_handlers)
+            lg.log_out(request_id, request_type, request_data, self)
 
 
 
@@ -175,8 +175,8 @@ class StandtaskHandler(websocket.WebSocketHandler):
             
             db = dc.GetConnection()
             #Remove all standtasks from database
-            db.execute("DELETE FROM 'main_standtask_data';")
-            db.execute("ALTER TABLE 'main_standtask_data' AUTO_INCREMENT = 1;")
+            
+            db.execute("SET SQL_SAFE_UPDATES = 0; DELETE FROM main_standtask_data; ALTER TABLE main_standtask_data AUTO_INCREMENT = 1; SET SQL_SAFE_UPDATES = 1;")
 
             for standtask in standtask_data:
                 standtask_id = standtask['standtask_id']

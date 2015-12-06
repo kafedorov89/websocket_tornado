@@ -17,7 +17,7 @@ import hashlib, binascii
 import base64
 
 import db_connect
-import bg_process
+#import bg_process
 
 from server_stand import StandtaskHandler
 from server_stand import check_standtask_activate as csa
