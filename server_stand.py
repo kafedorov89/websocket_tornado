@@ -20,36 +20,57 @@ import base64
 import db_connect as dc
 import server_login as lg
 
+activated_user = []
+
 #Function for background looping
 def check_standtask_activate():
     print "check_standtask_activate"
     
     db = dc.GetConnection()
-    activate_list = db.query("SELECT id, user_id, standtask_id FROM main_standtask_state WHERE activate = 1")
-    
+    #activate_list = db.query("SELECT id, user_id, standtask_id FROM main_standtask_state WHERE activate = 1") #REPLACE AFTER FIX
+    activate_list = db.query("SELECT id, user_id_id, standtask_id_id FROM main_standtask_state WHERE activate = 1") #REPLACE AFTER FIX
+
     user_id_list = []
     standtask_id_list = []
 
+    print "len(activate_list) = ", len(activate_list) 
+
     for active_standtask in activate_list:
+        try:
+            activated_user.index(active_standtask['user_id_id'])
+        except ValueError: #If user isn't exit in activated_user list
+            try:
+                #Get ws_handler for activate user_id
+                #user_handler = user_handlers[active_standtask['user_id']] #REPLACE AFTER FIX
+                user_handler = lg.user_handlers[active_standtask['user_id_id']] #REPLACE AFTER FIX
 
-        #Get ws_handler for activate user_id
-        user_handler = user_handlers[active_standtask['user_id']]
+
+                #Get line in table main_standtask_state
+                activate_standtask_id = active_standtask['id'] 
+                
+                #Get standtask_id for activate
+                #standtask_id = active_standtask['standtask_id'] #REPLACE AFTER FIX
+                standtask_id = active_standtask['standtask_id_id'] #REPLACE AFTER FIX
+
+                #Get activated standtask conn_json
+                standtask_data = db.get("{}{}{}".format("SELECT conn_json, standtask_name FROM main_standtask WHERE id = \'", standtask_id, "\';"))
+
+                #Send activate message to user
+                answer_message = {'request_id' : '', 'request_type' : 'ActivateStandtask', 'int_list' : [activate_standtask_id, standtask_id], 'string_value' : standtask_data['conn_json']}
+                
+                #print "answer_message = ", answer_message
+                json_answer_message = json.dumps(answer_message)
+                user_handler.write_message(json_answer_message)
+
+                #print "Activate, standtask №", standtask_id, ", user_id = ", active_standtask['user_id'] #REPLACE AFTER FIX
+                print "Activate, standtask №", standtask_id, ", user_id = ", active_standtask['user_id_id'] #REPLACE AFTER FIX
+
+                #Add new user to activated_user list for stop activation again and again
+                activated_user.append(active_standtask['user_id_id']);
+            except KeyError:
+                print "User not logged in to 3D part, yet"    
         
-        #Get line in table main_standtask_state
-        activate_standtask_id = active_standtask['id'] 
         
-        #Get standtask_id for activate
-        standtask_id = active_standtask['standtask_id'] 
-
-        #Get activated standtask conn_json
-        standtask_data = db.get("{}{}{}".format("SELECT conn_json, standtask_name FROM main_standtask_data WHERE standtask_id = \'", standtask_id, "\';"))
-
-        #Send activate message to user
-        answer_message = {'request_id' : request_id, 'request_type' : 'ActivateStandtask', 'int_list' : [activate_standtask_id, standtask_id], 'string_value' : standtask_data['conn_json']}
-        #print "answer_message = ", answer_message
-        json_answer_message = json.dumps(answer_message)
-        ws_heandler.write_message(json_answer_message)
-        print "Activate, standtask №", standtask_id, ", user_id = ", user_id
         
     db.close()
 
@@ -206,6 +227,8 @@ class StandtaskHandler(websocket.WebSocketHandler):
             #upload all groups to main_standtask_data, each to one row 
 
         if(request_type == "SetStandtaskComplete"): #Using by student when check complete selected schema
+            activated_user.remove(active_standtask['user_id_id']); #FIXME. Need to add in request data, information about user_id, who completed this standtask
+
             active_standtask_id = json.loads(request_data)
 
             print "CheckComplete message"

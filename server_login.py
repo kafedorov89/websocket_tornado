@@ -18,6 +18,7 @@ import base64
 import db_connect as dc
 
 user_handlers = {} #Dict with username as key (return websocket_handler by username)
+activated_user = []
 handler_users = {} #Dict with websocket_handler object as key
 
 def check_connection(request_id, request_type, request_data, ws_heandler):
@@ -55,20 +56,22 @@ def log_in(request_id, request_type, request_data, ws_heandler):
     correctPasswordHash = passwordList[3]
     
     #generate hash from entered password
-    key = hashlib.pbkdf2_hmac('sha256', enteredPassword.encode('ascii'), passwordSalt.encode('ascii'), 20000)
+    key1 = hashlib.pbkdf2_hmac('sha256', enteredPassword.encode('ascii'), passwordSalt.encode('ascii'), 24000)
+    key2 = hashlib.pbkdf2_hmac('sha256', enteredPassword.encode('ascii'), passwordSalt.encode('ascii'), 20000)
     
     #binascii.hexlify(dk)
     
-    stringKey = base64.b64encode(key).decode('ascii').strip()
-    print stringKey #Debug
+    stringKey1 = base64.b64encode(key1).decode('ascii').strip()
+    stringKey2 = base64.b64encode(key2).decode('ascii').strip()
+    print stringKey1 #Debug
+    print stringKey2 #Debug
 
     #compare with hash from password 
-    if(correctPasswordHash == stringKey):
+    if((correctPasswordHash == stringKey1) or (correctPasswordHash == stringKey2)):
         print "Correct password"
 
         #Add user login to dict together with handler
         #logged_users.append(enteredLogin)
-        
 
         db = dc.GetConnection()
         user_info = db.get("{}{}{}".format("SELECT id, first_name, last_name, is_staff, is_superuser FROM auth_user WHERE username = \'", enteredLogin, "\' LIMIT 1;"))
