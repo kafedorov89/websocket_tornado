@@ -43,7 +43,7 @@ def check_standtask_activate():
                 #Get ws_handler for activate user_id
                 #user_handler = user_handlers[active_standtask['user_id']] #REPLACE AFTER FIX
                 user_handler = lg.user_handlers[active_standtask['user_id_id']] #REPLACE AFTER FIX
-
+                #print "---handler_users: ", lg.handler_users
 
                 #Get line in table main_standtask_state
                 activate_standtask_id = active_standtask['id'] 
@@ -68,10 +68,7 @@ def check_standtask_activate():
                 #Add new user to activated_user list for stop activation again and again
                 activated_user.append(active_standtask['user_id_id']);
             except KeyError:
-                print "User not logged in to 3D part, yet"    
-        
-        
-        
+                print "User with activated standtask not logged in to 3D application, yet"    
     db.close()
 
 
@@ -104,9 +101,14 @@ class StandtaskHandler(websocket.WebSocketHandler):
             lg.log_in(request_id, request_type, request_data, self)
 
         if(request_type == "LogOut"):
+            #Remove user_id from activated_user list
+            try:
+            #print "LogOut handler_users: ", lg.handler_users
+                activated_user.remove(lg.handler_users[self]);
+            except KeyError:
+                print "This user_id isn't exist in activated_user list"
+
             lg.log_out(request_id, request_type, request_data, self)
-
-
 
         #username = handler_users[self]
         if(request_type == "GetStudentStandtaskList"): #Using by teacher when choose student for check his ropes
@@ -240,6 +242,18 @@ class StandtaskHandler(websocket.WebSocketHandler):
 
     def on_close(self):
         print 'Standtask websocket connection was closed'
+
+        print "handler_users: ", lg.handler_users
+        print "activated_user: ", activated_user
+        print "lg.handler_users[self]: ", lg.handler_users[self]
+ 
+        #Remove user_id from activated_user list
+        try:
+            activated_user.remove(lg.handler_users[self]);
+        except ValueError:
+            print "This user_id isn't exist in activated_user list"
+        
+        lg.log_out("", "LogOut", "", self)
 
         #FIXME. Send to main_standtask_state table 'error' = '1' and 'activate' = '0' if line with active_standtask_id have 'activate' = '1'
 

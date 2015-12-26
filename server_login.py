@@ -18,7 +18,6 @@ import base64
 import db_connect as dc
 
 user_handlers = {} #Dict with username as key (return websocket_handler by username)
-activated_user = []
 handler_users = {} #Dict with websocket_handler object as key
 
 def check_connection(request_id, request_type, request_data, ws_heandler):
@@ -79,6 +78,7 @@ def log_in(request_id, request_type, request_data, ws_heandler):
         db.close() 
         
         handler_users.update([(ws_heandler, user_info['id'])])
+        print "handler_users: ", handler_users
         user_handlers.update([(user_info['id'], ws_heandler)])
         
         #print user_handlers.items()
@@ -143,12 +143,25 @@ def log_in(request_id, request_type, request_data, ws_heandler):
 def log_out(request_id, request_type, request_data, ws_heandler):
     print "LogOut message"        
     try:
-        user_id = handler_users.pop(ws_heandler)[0]
-        del user_handlers[user_id]
+        #print "handler_users.pop(ws_heandler) = ", handler_users.pop(ws_heandler)
+        user_id = handler_users.pop(ws_heandler)
+
+        db = dc.GetConnection()
+        #username = db.get("{}{}{}".format("SELECT username FROM auth_user WHERE user_id = \'", user_id, "\' LIMIT 1;")) #REPLACE AFTER FIX
+        username = db.get("{}{}{}".format("SELECT username FROM auth_user WHERE id = \'", user_id, "\' LIMIT 1;")) #REPLACE AFTER FIX
+        db.close() 
+
         print "User ", username, " was logged out"
+
+        del user_handlers[user_id]
+        
         answer_message = {'request_id' : request_id, 'request_type' : request_type, 'bool_value' : True}
         print "Answer message = ", answer_message
         json_answer_message = json.dumps(answer_message)
+        
+        #try:
         ws_heandler.write_message(json_answer_message)
+        #except :
+        #print "ws_heandler already was closed"
     except KeyError:
         pass
