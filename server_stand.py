@@ -101,8 +101,11 @@ class StandtaskHandler(websocket.WebSocketHandler):
 
         if(request_type == "LogOut"):
             #Remove user_id from activated_user list
-            try:
-            #print "LogOut handler_users: ", lg.handler_users
+            try:    
+                db = dc.GetConnection()
+                db.execute("UPDATE `electrolab`.`main_standtask_state` SET `error` = 1, `activate`= 0, `complete`= 0 WHERE `user_id`= {} AND `activate`= 1;".format(lg.handler_users[self]))
+                db.close()
+
                 activated_user.remove(lg.handler_users[self]);
             except KeyError:
                 print "KeyError: This user_id isn't exist in activated_user list"
@@ -131,14 +134,16 @@ class StandtaskHandler(websocket.WebSocketHandler):
 
             for active_standtask in activate_list:
                 print "active_standtask = ", active_standtask
-                standtask_name = db.get("{}{}{}".format("SELECT standtask_name FROM main_standtask_data WHERE standtask_id = \'", active_standtask['standtask_id'], "\';"))
-                print "standtask_name = ", standtask_name 
+                #standtask_name = db.get("{}{}{}".format("SELECT standtask_name FROM main_standtask WHERE id = \'", active_standtask['standtask_id'], "\';"))
+                #print "standtask_name = ", standtask_name 
                 
+                #Get full name of student
                 user_fullname = db.get("{}{}{}".format("SELECT first_name, last_name FROM auth_user WHERE id = \'", active_standtask['user_id'], "\';"))
                 print "user_fullname = ", user_fullname
 
+                
                 active_standtask_id_list.append(active_standtask['id'])
-                standtask_name_list.append(u"Лабораторная работа №{} Студент:{} {}".format(standtask_name['standtask_name'], user_fullname['first_name'], user_fullname['last_name']))
+                standtask_name_list.append(u"Схема №{} Студент:{} {}".format(active_standtask['standtask_id'], user_fullname['first_name'], user_fullname['last_name']))
             
             db.close()
 
@@ -258,16 +263,21 @@ class StandtaskHandler(websocket.WebSocketHandler):
             #upload all groups to main_standtask_data, each to one row 
 
         if(request_type == "SetStandtaskComplete"): #Using by student when check complete selected schema
-            activated_user.remove(active_standtask['user_id_id']); #FIXME. Need to add in request data, information about user_id, who completed this standtask
-
-            active_standtask_id = json.loads(request_data)
+            #activated_user.remove(active_standtask['user_id']); #FIXME. Need to add in request data, information about user_id, who completed this standtask
+            #active_standtask_id = json.loads(request_data)
 
             print "CheckComplete message"
             #Set completed flag to 1 (true) if is_complete flag from request_data is True
-            db = dc.GetConnection()
-            db.execute("UPDATE `electrolab`.`main_standtask_state` SET `complete`='1', 'activate'='0' WHERE `active_standtask_id`=\'",active_standtask_id,"\';")
-            db.close()
+            try:
+                #If user alredy activated. Send error to database and remove user_id from activated list
+                db = dc.GetConnection()
+                db.execute("UPDATE `electrolab`.`main_standtask_state` SET `error` = 0, `activate`= 0, `complete`= 1 WHERE `user_id`= {} AND `activate`= 1;".format(lg.handler_users[self]))
+                db.close()
 
+                activated_user.remove(lg.handler_users[self]);
+                print "Information about standtask complition was added to database"
+            except ValueError:
+                print "This user_id isn't exist in activated_user list"
 
     def on_close(self):
         print 'Standtask websocket connection was closed'
@@ -278,6 +288,11 @@ class StandtaskHandler(websocket.WebSocketHandler):
  
         #Remove user_id from activated_user list
         try:
+            #If user alredy activated. Send error to database and remove user_id from activated list
+            db = dc.GetConnection()
+            db.execute("UPDATE `electrolab`.`main_standtask_state` SET `error` = 1, `activate`= 0, `complete`= 0 WHERE `user_id`= {} AND `activate`= 1;".format(lg.handler_users[self]))
+            db.close()
+
             activated_user.remove(lg.handler_users[self]);
         except ValueError:
             print "This user_id isn't exist in activated_user list"
