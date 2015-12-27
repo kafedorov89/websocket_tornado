@@ -27,8 +27,8 @@ def check_standtask_activate():
     print "check_standtask_activate"
     
     db = dc.GetConnection()
-    #activate_list = db.query("SELECT id, user_id, standtask_id FROM main_standtask_state WHERE activate = 1") #REPLACE AFTER FIX
-    activate_list = db.query("SELECT id, user_id_id, standtask_id_id FROM main_standtask_state WHERE activate = 1") #REPLACE AFTER FIX
+    activate_list = db.query("SELECT id, user_id, standtask_id FROM main_standtask_state WHERE activate = 1") #REPLACE AFTER FIX
+    #activate_list = db.query("SELECT id, user_id_id, standtask_id_id FROM main_standtask_state WHERE activate = 1") #REPLACE AFTER FIX
 
     user_id_list = []
     standtask_id_list = []
@@ -37,36 +37,35 @@ def check_standtask_activate():
 
     for active_standtask in activate_list:
         try:
-            activated_user.index(active_standtask['user_id_id'])
+            activated_user.index(active_standtask['user_id'])
         except ValueError: #If user isn't exit in activated_user list
             try:
-                #Get ws_handler for activate user_id
-                #user_handler = user_handlers[active_standtask['user_id']] #REPLACE AFTER FIX
-                user_handler = lg.user_handlers[active_standtask['user_id_id']] #REPLACE AFTER FIX
+            #Get ws_handler for activate user_id
+                user_handler = lg.user_handlers[active_standtask['user_id']] #REPLACE AFTER FIX
                 #print "---handler_users: ", lg.handler_users
 
                 #Get line in table main_standtask_state
                 activate_standtask_id = active_standtask['id'] 
                 
                 #Get standtask_id for activate
-                #standtask_id = active_standtask['standtask_id'] #REPLACE AFTER FIX
-                standtask_id = active_standtask['standtask_id_id'] #REPLACE AFTER FIX
+                standtask_id = active_standtask['standtask_id'] #REPLACE AFTER FIX
+                #standtask_id = active_standtask['standtask_id_id'] #REPLACE AFTER FIX
 
                 #Get activated standtask conn_json
                 standtask_data = db.get("{}{}{}".format("SELECT conn_json, standtask_name FROM main_standtask WHERE id = \'", standtask_id, "\';"))
 
-                #Send activate message to user
+                #Send activate message to user. This message contain information about correct connections for activated standtask
                 answer_message = {'request_id' : '', 'request_type' : 'ActivateStandtask', 'int_list' : [activate_standtask_id, standtask_id], 'string_value' : standtask_data['conn_json']}
                 
                 #print "answer_message = ", answer_message
                 json_answer_message = json.dumps(answer_message)
                 user_handler.write_message(json_answer_message)
 
-                #print "Activate, standtask №", standtask_id, ", user_id = ", active_standtask['user_id'] #REPLACE AFTER FIX
-                print "Activate, standtask №", standtask_id, ", user_id = ", active_standtask['user_id_id'] #REPLACE AFTER FIX
+                print "Activate, standtask №", standtask_id, ", user_id = ", active_standtask['user_id'] #REPLACE AFTER FIX
+                #print "Activate, standtask №", standtask_id, ", user_id = ", active_standtask['user_id_id'] #REPLACE AFTER FIX
 
                 #Add new user to activated_user list for stop activation again and again
-                activated_user.append(active_standtask['user_id_id']);
+                activated_user.append(active_standtask['user_id']);
             except KeyError:
                 print "User with activated standtask not logged in to 3D application, yet"    
     db.close()
@@ -92,7 +91,7 @@ class StandtaskHandler(websocket.WebSocketHandler):
 
         #session_id = user_sessions[user_name]
 
-        print 'Received message:  %s' % python_request
+        #print 'Received message:  %s' % python_request
 
         if(request_type == "CheckConnection"):
             lg.check_connection(request_id, request_type, request_data, self)
@@ -106,7 +105,9 @@ class StandtaskHandler(websocket.WebSocketHandler):
             #print "LogOut handler_users: ", lg.handler_users
                 activated_user.remove(lg.handler_users[self]);
             except KeyError:
-                print "This user_id isn't exist in activated_user list"
+                print "KeyError: This user_id isn't exist in activated_user list"
+            except ValueError:
+                print "ValueError: This user_id isn't exist in activated_user list"
 
             lg.log_out(request_id, request_type, request_data, self)
 
@@ -159,7 +160,7 @@ class StandtaskHandler(websocket.WebSocketHandler):
             user_name = db.get("{}{}{}".format("SELECT first_name, last_name FROM auth_user WHERE id = \'", active_standtask_state['user_id'], "\';"))
             user_full_name = u"{} {}".format(user_name['first_name'], user_name['last_name'])
 
-            active_standtask_data = db.get("{}{}{}".format("SELECT conn_json, standtask_name FROM main_standtask_data WHERE id = \'", active_standtask_state['standtask_id'], "\';"))
+            active_standtask_data = db.get("{}{}{}".format("SELECT conn_json, standtask_name FROM main_standtask WHERE id = \'", active_standtask_state['standtask_id'], "\';"))
             print "active_standtask_state = ", active_standtask_state 
             print "active_standtask_data = ", active_standtask_data 
 
@@ -194,22 +195,50 @@ class StandtaskHandler(websocket.WebSocketHandler):
             self.write_message(json_answer_message)
 
         if(request_type == "UploadAllSchemas"): #Using by admin when upload all schemas to database from local files
-            standtask_data = json.loads(request_data)
+            standtask_data = json.loads(request_data) #Unpask all standtasks from one package
             
             db = dc.GetConnection()
             #Remove all standtasks from database
             
-            db.execute("SET SQL_SAFE_UPDATES = 0; DELETE FROM main_standtask_data; ALTER TABLE main_standtask_data AUTO_INCREMENT = 1; SET SQL_SAFE_UPDATES = 1;")
 
-            for standtask in standtask_data:
+            #db.execute("SET SQL_SAFE_UPDATES = 0; DELETE FROM main_standtask_data; ALTER TABLE main_standtask_data AUTO_INCREMENT = 1; SET SQL_SAFE_UPDATES = 1;")
+
+            for standtask_json in standtask_data:
+                
+                standtask = json.loads(standtask_json) #Unpack one standtask from one file
+
                 standtask_id = standtask['standtask_id']
-                standtask_name = standtask['standtask_name']
+                standtask_name = ''#standtask['standtask_name']
+                #conn_json = json.dumps(standtask['conn_json'])
+                #rope_json = json.dumps(standtask['rope_json'])
                 conn_json = standtask['conn_json']
                 rope_json = standtask['rope_json']
+                #conn_json = "{}".format(json.loads(standtask['conn_json']))
+                #rope_json = "{}".format(json.loads(standtask['rope_json']))
 
-                db.execute("INSERT INTO `electrolab`.`main_standtask_data` ('standtask_id','standtask_name','conn_json','rope_json',) \
-                VALUES(\'",standtask_id,"\', \'",standtask_name,"\', \'",conn_json,"\', \'",rope_json,"\')");
+                print "\n\n\n", "conn_json = ", conn_json, "\n\n\n"
+                print "rope_json = ", rope_json, "\n\n\n"
+
+                #db.execute("INSERT INTO `electrolab`.`main_standtask_data` ('standtask_id','standtask_name','conn_json','rope_json',) \
+                #VALUES(\'",standtask_id,"\', \'",standtask_name,"\', \'",conn_json,"\', \'",rope_json,"\')");
                 
+                sql_reeequest = "INSERT INTO `electrolab`.`main_standtask` (`id`,`standtask_name`,`conn_json`,`rope_json`) \
+                VALUES({0}, \'\'\'{1}\'\'\', \'\'\'{2}\'\'\', \'\'\'{3}\'\'\') \
+                ON DUPLICATE KEY UPDATE `conn_json` = \'\'\'{2}\'\'\', `rope_json` = \'\'\'{3}\'\'\';".format(standtask_id, standtask_name, conn_json, rope_json)
+
+                #sql_reeequest = "INSERT INTO `electrolab`.`main_standtask` (`id`,`standtask_name`,`conn_json`,`rope_json`) \
+                #VALUES({0}, \'\'\'{1}\'\'\', {2}, {3}) \
+                #ON DUPLICATE KEY UPDATE `conn_json` = {2}, `rope_json` = {3};".format(standtask_id, standtask_name, conn_json, rope_json)
+
+                print "\n\n\n", sql_reeequest, "\n\n\n"
+
+                #sql_reeequest = "INSERT INTO `electrolab`.`main_standtask_data` ('standtask_id','standtask_name','conn_json','rope_json',) \
+                #VALUES(\'",standtask_id,"\', \'",standtask_name,"\', \'",conn_json,"\', \'",rope_json,"\') \
+                #ON DUPLICATE KEY UPDATE `conn_json` = \'",conn_json,"\', `rope_json` = \'",rope_json,"\';".format(standtask_id, standtask_name, conn_json, rope_json)
+
+                db.execute(sql_reeequest)
+                #ON DUPLICATE KEY UPDATE `conn_json` = \'", str(json.loads(conn_json)[0]) ,"\', `rope_json` = \'", str(json.loads(rope_json)[0]) ,"\';")
+
             #db.execute("{}{}".format("INSERT INTO `electrolab`.`main_standtask_data` SET `user_rope_json`=\'", user_rope_json,"\',"\';"))
             db.close()
             #get request_data with standtask_id, conn_json, rope_json

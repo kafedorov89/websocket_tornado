@@ -4,6 +4,7 @@
 import tornado.httpserver
 from tornado import websocket, web, ioloop
 from torndb import Connection
+from tornado.websocket import WebSocketHandler, WebSocketClosedError
 
 import datetime
 import time
@@ -147,8 +148,8 @@ def log_out(request_id, request_type, request_data, ws_heandler):
         user_id = handler_users.pop(ws_heandler)
 
         db = dc.GetConnection()
-        #username = db.get("{}{}{}".format("SELECT username FROM auth_user WHERE user_id = \'", user_id, "\' LIMIT 1;")) #REPLACE AFTER FIX
         username = db.get("{}{}{}".format("SELECT username FROM auth_user WHERE id = \'", user_id, "\' LIMIT 1;")) #REPLACE AFTER FIX
+        #username = db.get("{}{}{}".format("SELECT username FROM auth_user WHERE id = \'", user_id, "\' LIMIT 1;")) #REPLACE AFTER FIX
         db.close() 
 
         print "User ", username, " was logged out"
@@ -159,9 +160,11 @@ def log_out(request_id, request_type, request_data, ws_heandler):
         print "Answer message = ", answer_message
         json_answer_message = json.dumps(answer_message)
         
-        #try:
-        ws_heandler.write_message(json_answer_message)
-        #except :
+        try:
+            ws_heandler.write_message(json_answer_message)
+        except WebSocketClosedError:
+            print "websocket closed when sending message"
+
         #print "ws_heandler already was closed"
     except KeyError:
         pass
