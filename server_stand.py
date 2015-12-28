@@ -252,11 +252,16 @@ class StandtaskHandler(websocket.WebSocketHandler):
 
         if(request_type == "UploadStudentRopes"): #Using by student, when new rope was fixed in some socket and need update information on server for teacher
             user_rope = json.loads(request_data)
-            user_rope_json = user_rope['user_rope_json']
-            active_standtask_id = user_rope['active_standtask_id']
+            
+            user_rope_json = user_rope[0]
+            active_standtask_id = user_rope[1]
+
+            print "\n\n\n", "user_rope_json = ", user_rope_json, "\n\n\n"
+            print "active_standtask_id = ", active_standtask_id, "\n\n\n"
 
             db = dc.GetConnection()
-            db.execute("{}{}{}{}{}".format("UPDATE `electrolab`.`main_standtask_state` SET `user_rope_json`=\'", user_rope_json,"\' WHERE `id`=\'", active_standtask_id,"\';"))
+            db.execute("UPDATE `electrolab`.`main_standtask_state` SET `user_rope_json`=\'\'\'{}\'\'\' \
+                WHERE `standtask_id`={} AND `user_id`={};".format(user_rope_json, active_standtask_id, lg.handler_users[self]))
             db.close()
             #get request_data with standtask_id, conn_json, rope_json
             #parse to list with groups (standtask_id, conn_json, rope_json) for each standtask 
