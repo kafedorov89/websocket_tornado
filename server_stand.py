@@ -21,6 +21,58 @@ import db_connect as dc
 import server_login as lg
 
 activated_user = []
+user_teacher_link = {} #Key = Student's handler, Value Teacher's Handler
+
+def UpdateStudentStandtaskRopes(self, request_id, request_type, active_standtask_id):
+
+    db = dc.GetConnection()
+    active_standtask_state = db.get("{}{}{}".format("SELECT user_id, standtask_id, user_rope_json FROM main_standtask_state WHERE id = \'", active_standtask_id, "\';"))
+    
+    user_name = db.get("{}{}{}".format("SELECT first_name, last_name FROM auth_user WHERE id = \'", active_standtask_state['user_id'], "\';"))
+    user_full_name = u"{} {}".format(user_name['first_name'], user_name['last_name'])
+
+    active_standtask_data = db.get("{}{}{}".format("SELECT conn_json, standtask_name FROM main_standtask WHERE id = \'", active_standtask_state['standtask_id'], "\';"))
+    print "active_standtask_state = ", active_standtask_state 
+    print "active_standtask_data = ", active_standtask_data 
+
+    answer_message = {'request_id' : request_id, \
+        'request_type' : request_type, \
+        'string_value' : active_standtask_state['user_rope_json']}
+    #pass
+    #get active_standtask_id from request_data
+    #get user_rope_json and full_username from main_standtask_state and auth_user
+    json_answer_message = json.dumps(answer_message)
+
+    user_teacher_link[self].write_message(json_answer_message)
+
+def GetStudentStandtaskList(self, request_id, request_type):
+    db = dc.GetConnection()
+    activate_list = db.query("SELECT id, user_id, standtask_id FROM main_standtask_state WHERE activate = 1")
+    
+    active_standtask_id_list = []
+    standtask_name_list = []
+
+    for active_standtask in activate_list:
+        print "active_standtask = ", active_standtask
+
+        #Get full name of student
+        user_fullname = db.get("{}{}{}".format("SELECT first_name, last_name FROM auth_user WHERE id = \'", active_standtask['user_id'], "\';"))
+        print "user_fullname = ", user_fullname
+
+        
+        active_standtask_id_list.append(active_standtask['id'])
+        standtask_name_list.append(u"Схема №{} Студент:{} {}".format(active_standtask['standtask_id'], user_fullname['first_name'], user_fullname['last_name']))
+    
+    db.close()
+
+    print "active_standtask_id_list = ", active_standtask_id_list
+    print "standtask_name_list = ", standtask_name_list
+
+    answer_message = {'request_id' : request_id, 'request_type' : request_type, 'int_list' : active_standtask_id_list, 'string_list' : standtask_name_list}
+    print "Answer message = ", answer_message
+    json_answer_message = json.dumps(answer_message)
+    self.write_message(json_answer_message)
+
 
 #Function for background looping
 def check_standtask_activate():
@@ -28,6 +80,7 @@ def check_standtask_activate():
     
     db = dc.GetConnection()
     activate_list = db.query("SELECT id, user_id, standtask_id FROM main_standtask_state WHERE activate = 1") #REPLACE AFTER FIX
+    deactivate_list = db.query("SELECT id, user_id, standtask_id FROM main_standtask_state WHERE activate = 0")
     #activate_list = db.query("SELECT id, user_id_id, standtask_id_id FROM main_standtask_state WHERE activate = 1") #REPLACE AFTER FIX
 
     user_id_list = []
@@ -35,12 +88,24 @@ def check_standtask_activate():
 
     print "len(activate_list) = ", len(activate_list) 
 
-    for active_standtask in activate_list:
+    for deactive_standtask in deactivate_list: #Deactivate need standtasks
+        try:
+            activated_user.index(deactive_standtask['user_id'])
+            activated_user.remove(deactive_standtask['user_id']);
+            user_handler = lg.user_handlers[deactive_standtask['user_id']]
+            answer_message = {'request_id' : '', 'request_type' : 'DeactivateStandtask'}
+            json_answer_message = json.dumps(answer_message)
+            user_handler.write_message(json_answer_message)
+            print "User ", deactive_standtask['user_id'], " was deactivated"
+        except ValueError: #If user isn't exit in activated_user list
+            print "User wasn't activated before"
+
+    for active_standtask in activate_list: #Activate new active standtasks
         try:
             activated_user.index(active_standtask['user_id'])
         except ValueError: #If user isn't exit in activated_user list
             try:
-            #Get ws_handler for activate user_id
+                #Get ws_handler for activate user_id
                 user_handler = lg.user_handlers[active_standtask['user_id']] #REPLACE AFTER FIX
                 #print "---handler_users: ", lg.handler_users
 
@@ -66,6 +131,10 @@ def check_standtask_activate():
 
                 #Add new user to activated_user list for stop activation again and again
                 activated_user.append(active_standtask['user_id']);
+
+                for key, value in lg.user_handlers.iteritems():
+                    GetStudentStandtaskList(value, '', "GetStudentStandtaskList"); #Update information on all Teacher's accounts
+
             except KeyError:
                 print "User with activated standtask not logged in to 3D application, yet"    
     db.close()
@@ -116,44 +185,7 @@ class StandtaskHandler(websocket.WebSocketHandler):
 
         #username = handler_users[self]
         if(request_type == "GetStudentStandtaskList"): #Using by teacher when choose student for check his ropes
-            #loginClass = json.loads(request_data)
-            #print loginClass #Debug
-            #print loginClass['login'] #Debug
-            #print loginClass['password'] #Debug
-            
-            #enteredLogin = loginClass['login']
-            #enteredPassword = loginClass['password']
-            #get list with active user from main_standtask_state
-            #user_id, 
-            
-            db = dc.GetConnection()
-            activate_list = db.query("SELECT id, user_id, standtask_id FROM main_standtask_state WHERE activate = 1")
-            
-            active_standtask_id_list = []
-            standtask_name_list = []
-
-            for active_standtask in activate_list:
-                print "active_standtask = ", active_standtask
-                #standtask_name = db.get("{}{}{}".format("SELECT standtask_name FROM main_standtask WHERE id = \'", active_standtask['standtask_id'], "\';"))
-                #print "standtask_name = ", standtask_name 
-                
-                #Get full name of student
-                user_fullname = db.get("{}{}{}".format("SELECT first_name, last_name FROM auth_user WHERE id = \'", active_standtask['user_id'], "\';"))
-                print "user_fullname = ", user_fullname
-
-                
-                active_standtask_id_list.append(active_standtask['id'])
-                standtask_name_list.append(u"Схема №{} Студент:{} {}".format(active_standtask['standtask_id'], user_fullname['first_name'], user_fullname['last_name']))
-            
-            db.close()
-
-            print "active_standtask_id_list = ", active_standtask_id_list
-            print "standtask_name_list = ", standtask_name_list
-
-            answer_message = {'request_id' : request_id, 'request_type' : request_type, 'int_list' : active_standtask_id_list, 'string_list' : standtask_name_list}
-            print "Answer message = ", answer_message
-            json_answer_message = json.dumps(answer_message)
-            self.write_message(json_answer_message)
+            GetStudentStandtaskList(self, request_id, request_type)
 
         if(request_type == "GetStudentStandtask"): #Using by teacher when choose student for check his ropes
             active_standtask_id = json.loads(request_data)
@@ -182,6 +214,10 @@ class StandtaskHandler(websocket.WebSocketHandler):
             json_answer_message = json.dumps(answer_message)
             self.write_message(json_answer_message)
 
+            student_handler = lg.user_handlers[active_standtask_state['user_id']]
+            teacher_handler = self
+            user_teacher_link.update([(student_handler, teacher_handler)]) #Save Teacher's handler who requested this standtask for update later
+
         if(request_type == "GetSchema"): #Using by admin when checking all schemas uploading
             standtask_id = json.loads(request_data)
             db = dc.GetConnection()
@@ -204,7 +240,6 @@ class StandtaskHandler(websocket.WebSocketHandler):
             
             db = dc.GetConnection()
             #Remove all standtasks from database
-            
 
             #db.execute("SET SQL_SAFE_UPDATES = 0; DELETE FROM main_standtask_data; ALTER TABLE main_standtask_data AUTO_INCREMENT = 1; SET SQL_SAFE_UPDATES = 1;")
 
@@ -263,6 +298,9 @@ class StandtaskHandler(websocket.WebSocketHandler):
             db.execute("UPDATE `electrolab`.`main_standtask_state` SET `user_rope_json`=\'\'\'{}\'\'\' \
                 WHERE `standtask_id`={} AND `user_id`={};".format(user_rope_json, active_standtask_id, lg.handler_users[self]))
             db.close()
+
+            UpdateStudentStandtaskRopes(self, '', "UpdateStudentStandtaskRopes") #Update information about ropes on teacher's side
+
             #get request_data with standtask_id, conn_json, rope_json
             #parse to list with groups (standtask_id, conn_json, rope_json) for each standtask 
             #upload all groups to main_standtask_data, each to one row 
