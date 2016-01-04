@@ -23,26 +23,14 @@ import server_login as lg
 activated_user = []
 user_teacher_link = {} #Key = Student's handler, Value Teacher's Handler
 
-def UpdateStudentStandtaskRopes(self, request_id, request_type, active_standtask_id):
-
-    db = dc.GetConnection()
-    active_standtask_state = db.get("{}{}{}".format("SELECT user_id, standtask_id, user_rope_json FROM main_standtask_state WHERE id = \'", active_standtask_id, "\';"))
-    
-    user_name = db.get("{}{}{}".format("SELECT first_name, last_name FROM auth_user WHERE id = \'", active_standtask_state['user_id'], "\';"))
-    user_full_name = u"{} {}".format(user_name['first_name'], user_name['last_name'])
-
-    active_standtask_data = db.get("{}{}{}".format("SELECT conn_json, standtask_name FROM main_standtask WHERE id = \'", active_standtask_state['standtask_id'], "\';"))
-    print "active_standtask_state = ", active_standtask_state 
-    print "active_standtask_data = ", active_standtask_data 
+def UpdateStudentStandtaskRopes(self, request_id, request_type, user_rope_json):
+    print "UpdateStudentStandtaskRopes"
 
     answer_message = {'request_id' : request_id, \
         'request_type' : request_type, \
-        'string_value' : active_standtask_state['user_rope_json']}
-    #pass
-    #get active_standtask_id from request_data
-    #get user_rope_json and full_username from main_standtask_state and auth_user
-    json_answer_message = json.dumps(answer_message)
+        'string_value' : user_rope_json}
 
+    json_answer_message = json.dumps(answer_message)
     user_teacher_link[self].write_message(json_answer_message)
 
 def GetStudentStandtaskList(self, request_id, request_type):
@@ -299,7 +287,7 @@ class StandtaskHandler(websocket.WebSocketHandler):
                 WHERE `standtask_id`={} AND `user_id`={};".format(user_rope_json, active_standtask_id, lg.handler_users[self]))
             db.close()
 
-            UpdateStudentStandtaskRopes(self, '', "UpdateStudentStandtaskRopes") #Update information about ropes on teacher's side
+            UpdateStudentStandtaskRopes(self, '', "UpdateStudentStandtaskRopes", user_rope_json) #Update information about ropes on teacher's side
 
             #get request_data with standtask_id, conn_json, rope_json
             #parse to list with groups (standtask_id, conn_json, rope_json) for each standtask 
