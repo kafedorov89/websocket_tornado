@@ -23,15 +23,19 @@ import server_login as lg
 activated_user = []
 user_teacher_link = {} #Key = Student's handler, Value Teacher's Handler
 
-def UpdateStudentStandtaskRopes(self, request_id, request_type, user_rope_json):
+def UpdateStudentStandtaskRopes(self, user_rope_json):
     print "UpdateStudentStandtaskRopes"
 
-    answer_message = {'request_id' : request_id, \
-        'request_type' : request_type, \
-        'string_value' : user_rope_json}
+    answer_message = {'request_id' : '', \
+        'request_type' : "UpdateStudentStandtaskRopes", \
+        'string_value' : json.loads(user_rope_json)}
 
     json_answer_message = json.dumps(answer_message)
-    user_teacher_link[self].write_message(json_answer_message)
+    try:
+        user_teacher_link[self].write_message(json_answer_message)
+    except KeyError: #If Teacher didn't login yet
+            print "Teacher didn't login yet"
+
 
 def GetStudentStandtaskList(self, request_id, request_type):
     db = dc.GetConnection()
@@ -175,7 +179,7 @@ class StandtaskHandler(websocket.WebSocketHandler):
         if(request_type == "GetStudentStandtaskList"): #Using by teacher when choose student for check his ropes
             GetStudentStandtaskList(self, request_id, request_type)
 
-        if(request_type == "GetStudentStandtask"): #Using by teacher when choose student for check his ropes
+        if(request_type == "GetStudentStandtask"): #Using by student automaticly, when standtask activation
             active_standtask_id = json.loads(request_data)
             print "active_standtask_info = ", active_standtask_id
 
@@ -287,7 +291,7 @@ class StandtaskHandler(websocket.WebSocketHandler):
                 WHERE `standtask_id`={} AND `user_id`={};".format(user_rope_json, active_standtask_id, lg.handler_users[self]))
             db.close()
 
-            UpdateStudentStandtaskRopes(self, '', "UpdateStudentStandtaskRopes", user_rope_json) #Update information about ropes on teacher's side
+            UpdateStudentStandtaskRopes(self, user_rope_json) #Update information about ropes on teacher's side
 
             #get request_data with standtask_id, conn_json, rope_json
             #parse to list with groups (standtask_id, conn_json, rope_json) for each standtask 
