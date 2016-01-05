@@ -34,7 +34,7 @@ def UpdateStudentStandtaskRopes(self, user_rope_json):
     try:
         user_teacher_link[self].write_message(json_answer_message)
     except KeyError: #If Teacher didn't login yet
-            print "Teacher didn't login yet"
+        print "Teacher didn't login yet"
 
 
 def GetStudentStandtaskList(self, request_id, request_type):
@@ -51,7 +51,6 @@ def GetStudentStandtaskList(self, request_id, request_type):
         user_fullname = db.get("{}{}{}".format("SELECT first_name, last_name FROM auth_user WHERE id = \'", active_standtask['user_id'], "\';"))
         print "user_fullname = ", user_fullname
 
-        
         active_standtask_id_list.append(active_standtask['id'])
         standtask_name_list.append(u"Схема №{} Студент:{} {}".format(active_standtask['standtask_id'], user_fullname['first_name'], user_fullname['last_name']))
     
@@ -89,6 +88,9 @@ def check_standtask_activate():
             json_answer_message = json.dumps(answer_message)
             user_handler.write_message(json_answer_message)
             print "User ", deactive_standtask['user_id'], " was deactivated"
+
+            for key, value in lg.user_handlers.iteritems():
+                GetStudentStandtaskList(value, '', "GetStudentStandtaskList"); #Update information on all Teacher's accounts
         except ValueError: #If user isn't exit in activated_user list
             print "User wasn't activated before"
 
