@@ -316,13 +316,13 @@ class StandtaskHandler(websocket.WebSocketHandler):
 
                 #Send information about standtask completion to Teacher who watch this standtask
                 answer_message = {'request_id' : '', \
-		        	'request_type' : "StandtaskComplete"}
+                    'request_type' : "StandtaskComplete"}
 
-			    json_answer_message = json.dumps(answer_message)
-			    try:
-			        user_teacher_link[self].write_message(json_answer_message)
-			    except KeyError: #If Teacher didn't login yet
-			        print "Teacher didn't login yet"
+                json_answer_message = json.dumps(answer_message)
+                try:
+                    user_teacher_link[self].write_message(json_answer_message)
+                except KeyError: #If Teacher didn't login yet
+                    print "Teacher didn't login yet"
             except ValueError:
                 print "This user_id isn't exist in activated_user list"
 
