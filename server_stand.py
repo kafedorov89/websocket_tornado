@@ -321,8 +321,10 @@ class StandtaskHandler(websocket.WebSocketHandler):
 
         print "handler_users: ", lg.handler_users
         print "activated_user: ", activated_user
-        print "lg.handler_users[self]: ", lg.handler_users[self]
- 
+        try:
+            print "lg.handler_users[self]: ", lg.handler_users[self]
+        except KeyError:
+            print "lg.handler_users[self]: KeyError"
         #Remove user_id from activated_user list
         try:
             #If user alredy activated. Send error to database and remove user_id from activated list
@@ -332,6 +334,8 @@ class StandtaskHandler(websocket.WebSocketHandler):
 
             activated_user.remove(lg.handler_users[self]);
         except ValueError:
+            print "This user_id isn't exist in activated_user list"
+        except KeyError:
             print "This user_id isn't exist in activated_user list"
         
         lg.log_out("", "LogOut", "", self)

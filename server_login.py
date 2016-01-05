@@ -41,104 +41,110 @@ def log_in(request_id, request_type, request_data, ws_heandler):
     #db.execute("SELECT FROM electrolab password WHERE username = login)
     #db.reconnect()
     db = dc.GetConnection()
-    dbPasswordStruct = db.get("{}{}{}".format("SELECT password FROM auth_user WHERE username = \'", enteredLogin, "\' LIMIT 1;"))
+    dbPasswordStruct = db.get("{}{}{}".format("SELECT password, id FROM auth_user WHERE username = \'", enteredLogin, "\' LIMIT 1;"))
     db.close()    
-    print "Password from database", dbPasswordStruct #Debug
-    passwordList = dbPasswordStruct['password'].split('$')
-    print passwordList[0] #Debug
-    print passwordList[1] #Debug
-    print passwordList[2] #Debug
-    print passwordList[3] #Debug
+    
+    try:
+        user_handlers[dbPasswordStruct['id']]
+        print "User with this ID alredy logged in"
+    except KeyError: #If user isn't exit in activated_user list
+        print "Password from database", dbPasswordStruct #Debug
+        passwordList = dbPasswordStruct['password'].split('$')
+        print passwordList[0] #Debug
+        print passwordList[1] #Debug
+        print passwordList[2] #Debug
+        print passwordList[3] #Debug
 
-    #get salt from db password
-    passwordSalt = passwordList[2]
-    
-    correctPasswordHash = passwordList[3]
-    
-    #generate hash from entered password
-    key1 = hashlib.pbkdf2_hmac('sha256', enteredPassword.encode('ascii'), passwordSalt.encode('ascii'), 24000)
-    key2 = hashlib.pbkdf2_hmac('sha256', enteredPassword.encode('ascii'), passwordSalt.encode('ascii'), 20000)
-    
-    #binascii.hexlify(dk)
-    
-    stringKey1 = base64.b64encode(key1).decode('ascii').strip()
-    stringKey2 = base64.b64encode(key2).decode('ascii').strip()
-    print stringKey1 #Debug
-    print stringKey2 #Debug
+        #get salt from db password
+        passwordSalt = passwordList[2]
+        
+        correctPasswordHash = passwordList[3]
+        
+        #generate hash from entered password
+        key1 = hashlib.pbkdf2_hmac('sha256', enteredPassword.encode('ascii'), passwordSalt.encode('ascii'), 24000)
+        key2 = hashlib.pbkdf2_hmac('sha256', enteredPassword.encode('ascii'), passwordSalt.encode('ascii'), 20000)
+        
+        #binascii.hexlify(dk)
+        
+        stringKey1 = base64.b64encode(key1).decode('ascii').strip()
+        stringKey2 = base64.b64encode(key2).decode('ascii').strip()
+        print stringKey1 #Debug
+        print stringKey2 #Debug
 
     #compare with hash from password 
-    if((correctPasswordHash == stringKey1) or (correctPasswordHash == stringKey2)):
-        print "Correct password"
+        if((correctPasswordHash == stringKey1) or (correctPasswordHash == stringKey2)):
+            print "Correct password"
 
-        #Add user login to dict together with handler
-        #logged_users.append(enteredLogin)
+            #Add user login to dict together with handler
+            #logged_users.append(enteredLogin)
 
-        db = dc.GetConnection()
-        user_info = db.get("{}{}{}".format("SELECT id, first_name, last_name, is_staff, is_superuser FROM auth_user WHERE username = \'", enteredLogin, "\' LIMIT 1;"))
-        print "user_info = ", user_info
-        db.close() 
-        
-        handler_users.update([(ws_heandler, user_info['id'])])
-        print "handler_users: ", handler_users
-        user_handlers.update([(user_info['id'], ws_heandler)])
-        
-        #print user_handlers.items()
-        #print user_handlers.get("KOS")
-        
-        #Send to client information about correct login and password
-        answer_message = {'request_id' : request_id, 'request_type' : request_type, 'bool_value' : True}
-        print "answer_message = ", answer_message
-        json_answer_message = json.dumps(answer_message)
-        ws_heandler.write_message(json_answer_message)
-        
-        #------------------------------------------------------------------------------------------------------
-        #Send to client information about UserFullName of current user
-        first_name = ""
-        last_name = ""
+            db = dc.GetConnection()
+            user_info = db.get("{}{}{}".format("SELECT id, first_name, last_name, is_staff, is_superuser FROM auth_user WHERE username = \'", enteredLogin, "\' LIMIT 1;"))
+            print "user_info = ", user_info
+            db.close() 
+            
+            print "User wasn't activated before"
+            handler_users.update([(ws_heandler, user_info['id'])])
+            print "handler_users: ", handler_users
+            user_handlers.update([(user_info['id'], ws_heandler)])
 
-        try:
-            first_name = user_info['first_name']
-        except KeyError:
-            pass
+            #print user_handlers.items()
+            #print user_handlers.get("KOS")
+            
+            #Send to client information about correct login and password
+            answer_message = {'request_id' : request_id, 'request_type' : request_type, 'bool_value' : True}
+            print "answer_message = ", answer_message
+            json_answer_message = json.dumps(answer_message)
+            ws_heandler.write_message(json_answer_message)
+            
+            #------------------------------------------------------------------------------------------------------
+            #Send to client information about UserFullName of current user
+            first_name = ""
+            last_name = ""
 
-        try:
-            last_name = user_info['last_name']
-        except KeyError:
-            pass
-        
-        user_full_name = u"{} {}".format(first_name, last_name) 
-        answer_message = {'request_id' : request_id, 'request_type' : "UserFullName", 'string_value' : user_full_name}
-        print "answer_message = ", answer_message
-        json_answer_message = json.dumps(answer_message)
-        ws_heandler.write_message(json_answer_message)
+            try:
+                first_name = user_info['first_name']
+            except KeyError:
+                pass
 
-        #------------------------------------------------------------------------------------------------------
-        #Send to client information about UserRole of current user
-        print "is_staff = ", user_info['is_staff']
-        print "is_superuser = ", user_info['is_superuser']
+            try:
+                last_name = user_info['last_name']
+            except KeyError:
+                pass
+            
+            user_full_name = u"{} {}".format(first_name, last_name) 
+            answer_message = {'request_id' : request_id, 'request_type' : "UserFullName", 'string_value' : user_full_name}
+            print "answer_message = ", answer_message
+            json_answer_message = json.dumps(answer_message)
+            ws_heandler.write_message(json_answer_message)
 
-        is_staff_flag = user_info['is_staff']
-        is_superuser_flag = user_info['is_superuser']
+            #------------------------------------------------------------------------------------------------------
+            #Send to client information about UserRole of current user
+            print "is_staff = ", user_info['is_staff']
+            print "is_superuser = ", user_info['is_superuser']
 
-        if((is_staff_flag and is_superuser_flag) or is_superuser_flag):
-            user_role_type = 2 #superuser
-        elif(is_staff_flag):
-            user_role_type = 1 #teacher
+            is_staff_flag = user_info['is_staff']
+            is_superuser_flag = user_info['is_superuser']
+
+            if((is_staff_flag and is_superuser_flag) or is_superuser_flag):
+                user_role_type = 2 #superuser
+            elif(is_staff_flag):
+                user_role_type = 1 #teacher
+            else:
+                user_role_type = 0 #student
+            
+            print "user_role_type = ", user_role_type
+
+            answer_message = {'request_id' : request_id, 'request_type' : "UserRole", 'int_value' : user_role_type}
+            print "answer_message = ", answer_message
+            json_answer_message = json.dumps(answer_message)
+            ws_heandler.write_message(json_answer_message)
+            #------------------------------------------------------------------------------------------------------            
+            
+            #generate answer package with received request_id
+            #json_answer = json.dumps()
         else:
-            user_role_type = 0 #student
-        
-        print "user_role_type = ", user_role_type
-
-        answer_message = {'request_id' : request_id, 'request_type' : "UserRole", 'int_value' : user_role_type}
-        print "answer_message = ", answer_message
-        json_answer_message = json.dumps(answer_message)
-        ws_heandler.write_message(json_answer_message)
-        #------------------------------------------------------------------------------------------------------            
-        
-        #generate answer package with received request_id
-        #json_answer = json.dumps()
-    else:
-        print "Incorrect password"
+            print "Incorrect password"
     
     #self.write_message(json_answer)   
 def log_out(request_id, request_type, request_data, ws_heandler):
