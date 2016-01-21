@@ -24,6 +24,8 @@ activated_user = []
 user_teacher_link = {} #Key = Student's handler, Value Teacher's Handler
 
 def UpdateStudentStandtaskRopes(self, user_rope_json):
+    
+    print "\n\n\n"
     print "UpdateStudentStandtaskRopes"
 
     answer_message = {'request_id' : '', \
@@ -35,6 +37,7 @@ def UpdateStudentStandtaskRopes(self, user_rope_json):
         user_teacher_link[self].write_message(json_answer_message)
     except KeyError: #If Teacher didn't login yet
         print "Teacher didn't login yet"
+        print "\n\n\n"
 
 
 def GetStudentStandtaskList(self, request_id, request_type):
@@ -67,6 +70,7 @@ def GetStudentStandtaskList(self, request_id, request_type):
 
 #Function for background looping
 def check_standtask_activate():
+    print "\n\n\n"
     print "check_standtask_activate"
     
     db = dc.GetConnection()
@@ -79,7 +83,8 @@ def check_standtask_activate():
 
     print "len(activate_list) = ", len(activate_list) 
 
-    for deactive_standtask in deactivate_list: #Deactivate need standtasks
+    #Deactivate need standtasks
+    for deactive_standtask in deactivate_list: 
         try:
             activated_user.index(deactive_standtask['user_id'])
             activated_user.remove(deactive_standtask['user_id']);
@@ -95,7 +100,8 @@ def check_standtask_activate():
             pass
             #print "User wasn't activated before"
 
-    for active_standtask in activate_list: #Activate new active standtasks
+    #Activate new active standtasks
+    for active_standtask in activate_list: 
         try:
             activated_user.index(active_standtask['user_id'])
         except ValueError: #If user isn't exit in activated_user list
@@ -131,9 +137,11 @@ def check_standtask_activate():
 
                 for key, value in lg.user_handlers.iteritems():
                     GetStudentStandtaskList(value, '', "GetStudentStandtaskList"); #Update information on all Teacher's accounts
+                print "\n\n\n"
 
             except KeyError:
-                print "User with activated standtask not logged in to 3D application, yet"    
+                print "User with activated standtask not logged in to 3D application, yet"
+                print "\n\n\n"  
     db.close()
 
 
