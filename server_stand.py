@@ -92,7 +92,8 @@ def check_standtask_activate():
             for key, value in lg.user_handlers.iteritems():
                 GetStudentStandtaskList(value, '', "GetStudentStandtaskList"); #Update information on all Teacher's accounts
         except ValueError: #If user isn't exit in activated_user list
-            print "User wasn't activated before"
+            pass
+            #print "User wasn't activated before"
 
     for active_standtask in activate_list: #Activate new active standtasks
         try:
@@ -125,6 +126,8 @@ def check_standtask_activate():
 
                 #Add new user to activated_user list for stop activation again and again
                 activated_user.append(active_standtask['user_id']);
+
+                print "activated_user: {}".format(activated_user)
 
                 for key, value in lg.user_handlers.iteritems():
                     GetStudentStandtaskList(value, '', "GetStudentStandtaskList"); #Update information on all Teacher's accounts
