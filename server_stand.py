@@ -91,7 +91,7 @@ def check_standtask_activate():
             user_handler = lg.user_handlers[deactive_standtask['user_id']]
 
             #Если деактивируется уже активированная ранее для этого студента схема (другие не активные схемы не влияют на деактивацию текущей)
-            if deactive_standtask['standtask_id'] == user_standtask_link(user_handler)
+            if (deactive_standtask['standtask_id'] == user_standtask_link(user_handler)):
 
                 activated_user.index(deactive_standtask['user_id'])
                 activated_user.remove(deactive_standtask['user_id']);
