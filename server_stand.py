@@ -22,6 +22,7 @@ import server_login as lg
 
 activated_user = []
 user_teacher_link = {} #Key = Student's handler, Value Teacher's Handler
+user_standtask_link = {} #Key = Student's handler, Value activated standtask_id
 
 def UpdateStudentStandtaskRopes(self, user_rope_json):
     
@@ -86,16 +87,22 @@ def check_standtask_activate():
     #Deactivate need standtasks
     for deactive_standtask in deactivate_list: 
         try:
-            activated_user.index(deactive_standtask['user_id'])
-            activated_user.remove(deactive_standtask['user_id']);
+            
             user_handler = lg.user_handlers[deactive_standtask['user_id']]
-            answer_message = {'request_id' : '', 'request_type' : 'DeactivateStandtask'}
-            json_answer_message = json.dumps(answer_message)
-            user_handler.write_message(json_answer_message)
-            print "User ", deactive_standtask['user_id'], " was deactivated"
 
-            for key, value in lg.user_handlers.iteritems():
-                GetStudentStandtaskList(value, '', "GetStudentStandtaskList"); #Update information on all Teacher's accounts
+            #Если деактивируется уже активированная ранее для этого студента схема (другие не активные схемы не влияют на деактивацию текущей)
+            if deactive_standtask['standtask_id'] == user_standtask_link(user_handler)
+
+                activated_user.index(deactive_standtask['user_id'])
+                activated_user.remove(deactive_standtask['user_id']);
+                
+                answer_message = {'request_id' : '', 'request_type' : 'DeactivateStandtask'}
+                json_answer_message = json.dumps(answer_message)
+                user_handler.write_message(json_answer_message)
+                print "User ", deactive_standtask['user_id'], " was deactivated"
+
+                for key, value in lg.user_handlers.iteritems():
+                    GetStudentStandtaskList(value, '', "GetStudentStandtaskList"); #Update information on all Teacher's accounts
         except ValueError: #If user isn't exit in activated_user list
             pass
             #print "User wasn't activated before"
@@ -132,6 +139,9 @@ def check_standtask_activate():
 
                 #Add new user to activated_user list for stop activation again and again
                 activated_user.append(active_standtask['user_id']);
+
+                #Add user standtask to user_standtask_link list for stop deactivation activated standtask (if in database is active = 0 rows about this user)
+                user_standtask_link.update([(student_handler, standtask_id)])
 
                 print "activated_user: {}".format(activated_user)
 
@@ -359,6 +369,8 @@ class StandtaskHandler(websocket.WebSocketHandler):
         except KeyError:
             print "This user_id isn't exist in activated_user list"
         
+        user_standtask_link.pop(self)
+
         lg.log_out("", "LogOut", "", self)
 
         #FIXME. Send to main_standtask_state table 'error' = '1' and 'activate' = '0' if line with active_standtask_id have 'activate' = '1'
