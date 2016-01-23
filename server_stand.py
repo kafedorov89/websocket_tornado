@@ -105,6 +105,8 @@ def check_standtask_activate():
                     GetStudentStandtaskList(value, '', "GetStudentStandtaskList"); #Update information on all Teacher's accounts
         except ValueError: #If user isn't exit in activated_user list
             pass
+        except KeyError: #If user isn't exit in activated_user list
+            pass
             #print "User wasn't activated before"
 
     #Activate new active standtasks
