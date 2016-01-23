@@ -91,15 +91,15 @@ def check_standtask_activate():
             user_handler = lg.user_handlers[deactive_standtask['user_id']]
 
             #Если деактивируется уже активированная ранее для этого студента схема (другие не активные схемы не влияют на деактивацию текущей)
-            if (deactive_standtask['standtask_id'] == user_standtask_link(user_handler)):
-
+            if (deactive_standtask['standtask_id'] == user_standtask_link[user_handler]):
+            	del user_standtask_link[user_handler]
                 activated_user.index(deactive_standtask['user_id'])
                 activated_user.remove(deactive_standtask['user_id']);
                 
                 answer_message = {'request_id' : '', 'request_type' : 'DeactivateStandtask'}
                 json_answer_message = json.dumps(answer_message)
                 user_handler.write_message(json_answer_message)
-                print "User ", deactive_standtask['user_id'], " was deactivated"
+                print "User ", deactive_standtask['user_id'], " was deactivated with ", deactive_standtask['standtask_id'], " standtask"
 
                 for key, value in lg.user_handlers.iteritems():
                     GetStudentStandtaskList(value, '', "GetStudentStandtaskList"); #Update information on all Teacher's accounts
@@ -371,7 +371,7 @@ class StandtaskHandler(websocket.WebSocketHandler):
         except KeyError:
             print "This user_id isn't exist in activated_user list"
         
-        user_standtask_link.pop(self)
+        del user_standtask_link[self]
 
         lg.log_out("", "LogOut", "", self)
 
