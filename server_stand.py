@@ -143,7 +143,7 @@ def check_standtask_activate():
                 activated_user.append(active_standtask['user_id']);
 
                 #Add user standtask to user_standtask_link list for stop deactivation activated standtask (if in database is active = 0 rows about this user)
-                user_standtask_link.update([(student_handler, standtask_id)])
+                user_standtask_link.update([(user_handler, standtask_id)])
 
                 print "activated_user: {}".format(activated_user)
 
