@@ -331,7 +331,7 @@ class StandtaskHandler(websocket.WebSocketHandler):
             try:
                 #If user alredy activated. Send error to database and remove user_id from activated list
                 db = dc.GetConnection()
-                db.execute("UPDATE `electrolab`.`main_standtask_state` SET `error` = 0, `activate`= 0, `complete`= 1 WHERE `user_id`= {} `standtask_id`={} AND `activate`= 1;".format(lg.handler_users[self], user_standtask_link[self]))
+                db.execute("UPDATE `electrolab`.`main_standtask_state` SET `error` = 0, `activate`= 0, `complete`= 1 WHERE `user_id`= {} AND `standtask_id`={} AND `activate`= 1;".format(lg.handler_users[self], user_standtask_link[self]))
                 db.close()
 
                 activated_user.remove(lg.handler_users[self]);
