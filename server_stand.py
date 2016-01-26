@@ -87,7 +87,6 @@ def check_standtask_activate():
     #Deactivate need standtasks
     for deactive_standtask in deactivate_list: 
         try:
-            
             user_handler = lg.user_handlers[deactive_standtask['user_id']]
 
             #Если деактивируется уже активированная ранее для этого студента схема (другие не активные схемы не влияют на деактивацию текущей)
@@ -113,6 +112,7 @@ def check_standtask_activate():
     for active_standtask in activate_list: 
         try:
             activated_user.index(active_standtask['user_id'])
+            print "User already have activated standtask"
         except ValueError: #If user isn't exist in activated_user list
             try:
                 #Get ws_handler for activate user_id
@@ -331,7 +331,7 @@ class StandtaskHandler(websocket.WebSocketHandler):
             try:
                 #If user alredy activated. Send error to database and remove user_id from activated list
                 db = dc.GetConnection()
-                db.execute("UPDATE `electrolab`.`main_standtask_state` SET `error` = 0, `activate`= 0, `complete`= 1 WHERE `user_id`= {} AND `activate`= 1;".format(lg.handler_users[self]))
+                db.execute("UPDATE `electrolab`.`main_standtask_state` SET `error` = 0, `activate`= 0, `complete`= 1 WHERE `user_id`= {} `stantask_id`={} AND `activate`= 1;".format(lg.handler_users[self], user_standtask_link[user_handler]))
                 db.close()
 
                 activated_user.remove(lg.handler_users[self]);
