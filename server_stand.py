@@ -114,46 +114,46 @@ def check_standtask_activate():
         try:
             activated_user.index(active_standtask['user_id'])
         except ValueError: #If user isn't exist in activated_user list
-            #try:
+            try:
                 #Get ws_handler for activate user_id
-            user_handler = lg.user_handlers[active_standtask['user_id']] #REPLACE AFTER FIX
-            #print "---handler_users: ", lg.handler_users
+                user_handler = lg.user_handlers[active_standtask['user_id']] #REPLACE AFTER FIX
+                #print "---handler_users: ", lg.handler_users
 
-            #Get line in table main_standtask_state
-            activate_standtask_id = active_standtask['id'] 
-            
-            #Get standtask_id for activate
-            standtask_id = active_standtask['standtask_id'] #REPLACE AFTER FIX
-            #standtask_id = active_standtask['standtask_id_id'] #REPLACE AFTER FIX
+                #Get line in table main_standtask_state
+                activate_standtask_id = active_standtask['id'] 
+                
+                #Get standtask_id for activate
+                standtask_id = active_standtask['standtask_id'] #REPLACE AFTER FIX
+                #standtask_id = active_standtask['standtask_id_id'] #REPLACE AFTER FIX
 
-            #Get activated standtask conn_json
-            standtask_data = db.get("{}{}{}".format("SELECT conn_json, standtask_name FROM main_standtask WHERE id = \'", standtask_id, "\';"))
+                #Get activated standtask conn_json
+                standtask_data = db.get("{}{}{}".format("SELECT conn_json, standtask_name FROM main_standtask WHERE id = \'", standtask_id, "\';"))
 
-            #Send activate message to user. This message contain information about correct connections for activated standtask
-            answer_message = {'request_id' : '', 'request_type' : 'ActivateStandtask', 'int_list' : [activate_standtask_id, standtask_id], 'string_value' : standtask_data['conn_json']}
-            
-            #print "answer_message = ", answer_message
-            json_answer_message = json.dumps(answer_message)
-            user_handler.write_message(json_answer_message)
+                #Send activate message to user. This message contain information about correct connections for activated standtask
+                answer_message = {'request_id' : '', 'request_type' : 'ActivateStandtask', 'int_list' : [activate_standtask_id, standtask_id], 'string_value' : standtask_data['conn_json']}
+                
+                #print "answer_message = ", answer_message
+                json_answer_message = json.dumps(answer_message)
+                user_handler.write_message(json_answer_message)
 
-            print "Activate, standtask №", standtask_id, ", user_id = ", active_standtask['user_id'] #REPLACE AFTER FIX
-            #print "Activate, standtask №", standtask_id, ", user_id = ", active_standtask['user_id_id'] #REPLACE AFTER FIX
+                print "Activate, standtask №", standtask_id, ", user_id = ", active_standtask['user_id'] #REPLACE AFTER FIX
+                #print "Activate, standtask №", standtask_id, ", user_id = ", active_standtask['user_id_id'] #REPLACE AFTER FIX
 
-            #Add new user to activated_user list for stop activation again and again
-            activated_user.append(active_standtask['user_id']);
+                #Add new user to activated_user list for stop activation again and again
+                activated_user.append(active_standtask['user_id']);
 
-            #Add user standtask to user_standtask_link list for stop deactivation activated standtask (if in database is active = 0 rows about this user)
-            user_standtask_link.update([(user_handler, standtask_id)])
+                #Add user standtask to user_standtask_link list for stop deactivation activated standtask (if in database is active = 0 rows about this user)
+                user_standtask_link.update([(user_handler, standtask_id)])
 
-            print "activated_user: {}".format(activated_user)
+                print "activated_user: {}".format(activated_user)
 
-            for key, value in lg.user_handlers.iteritems():
-                GetStudentStandtaskList(value, '', "GetStudentStandtaskList"); #Update information on all Teacher's accounts
-            print "\n\n\n"
+                for key, value in lg.user_handlers.iteritems():
+                    GetStudentStandtaskList(value, '', "GetStudentStandtaskList"); #Update information on all Teacher's accounts
+                print "\n\n\n"
 
-            #except KeyError:
-            #    print "User with activated standtask not logged in to 3D application, yet"
-            #    print "\n\n\n"  
+            except KeyError, ValueError:
+                print "User with activated standtask not logged in to 3D application, yet"
+                print "\n\n\n"  
     db.close()
 
 
