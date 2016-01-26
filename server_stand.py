@@ -371,7 +371,12 @@ class StandtaskHandler(websocket.WebSocketHandler):
         except KeyError:
             print "This user_id isn't exist in activated_user list"
         
-        del user_standtask_link[self]
+        try:
+            del user_standtask_link[self]
+        except ValueError:
+            print "Standtask was not linked with this user"
+        except KeyError:
+            print "Standtask was not linked with this user"
 
         lg.log_out("", "LogOut", "", self)
 
