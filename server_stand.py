@@ -151,7 +151,7 @@ def check_standtask_activate():
                     GetStudentStandtaskList(value, '', "GetStudentStandtaskList"); #Update information on all Teacher's accounts
                 print "\n\n\n"
 
-            except KeyError, ValueError:
+            except (KeyError, ValueError):
                 print "User with activated standtask not logged in to 3D application, yet"
                 print "\n\n\n"  
     db.close()
